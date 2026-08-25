@@ -1,0 +1,23 @@
+{
+  "short_name": "LavaRápido",
+  "name": "Lava-Rápido Gestão",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3100/3100821.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3100/3100821.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0c232d",
+  "theme_color": "#0c232d",
+  "display": "standalone",
+  "orientation": "portrait"
+}
