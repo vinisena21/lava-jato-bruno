@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { CategoriaVeiculo, type Veiculo, type RoleUsuario } from '../types';
 import { supabase } from '../lib/supabase';
 
@@ -110,54 +111,96 @@ export function FormularioVeiculo({ onAdicionarVeiculo, userRole }: FormularioPr
   };
 
   const handleAddEquipe = async () => {
-    if (!novoLavador.trim()) return;
+    if (!novoLavador.trim()) {
+      toast.warning('Digite o nome do membro da equipe.');
+      return;
+    }
     const { data, error } = await supabase.from('equipe').insert([{ nome: novoLavador.trim().toUpperCase() }]).select();
-    if (error) { alert(`Erro ao salvar: ${error.message}`); return; }
-    if (data) setEquipeDB([...equipeDB, data[0]]);
+    if (error) {
+      toast.error(`Erro ao salvar: ${error.message}`);
+      return;
+    }
+    if (data) {
+      setEquipeDB([...equipeDB, data[0]]);
+      toast.success('Membro adicionado com sucesso!');
+    }
     setNovoLavador('');
   };
 
   const handleDelEquipe = async (id: string) => {
     const { error } = await supabase.from('equipe').delete().eq('id', id);
-    if (error) alert(`Erro ao apagar: ${error.message}`);
-    else setEquipeDB(equipeDB.filter(e => e.id !== id));
+    if (error) {
+      toast.error(`Erro ao apagar: ${error.message}`);
+    } else {
+      setEquipeDB(equipeDB.filter(e => e.id !== id));
+      toast.success('Membro removido.');
+    }
   };
 
   const handleAddModel = async () => {
-    if (!novoModelo.trim()) return;
+    if (!novoModelo.trim()) {
+      toast.warning('Digite o nome do modelo.');
+      return;
+    }
     const { data, error } = await supabase
       .from('modelos')
       .insert([{ nome: novoModelo.trim(), categoria: novaCategoriaModelo }])
       .select();
 
-    if (error) { alert(`Erro ao salvar: ${error.message}`); return; }
-    if (data) setModelosDB([...modelosDB, data[0]]);
+    if (error) {
+      toast.error(`Erro ao salvar: ${error.message}`);
+      return;
+    }
+    if (data) {
+      setModelosDB([...modelosDB, data[0]]);
+      toast.success('Modelo cadastrado com sucesso!');
+    }
     setNovoModelo('');
   };
 
   const handleDelModel = async (id: string) => {
     const { error } = await supabase.from('modelos').delete().eq('id', id);
-    if (error) alert(`Erro ao apagar: ${error.message}`);
-    else setModelosDB(modelosDB.filter(m => m.id !== id));
+    if (error) {
+      toast.error(`Erro ao apagar: ${error.message}`);
+    } else {
+      setModelosDB(modelosDB.filter(m => m.id !== id));
+      toast.success('Modelo removido.');
+    }
   };
 
   const handleAddCor = async () => {
-    if (!novaCor.trim()) return;
+    if (!novaCor.trim()) {
+      toast.warning('Digite o nome da cor.');
+      return;
+    }
     const { data, error } = await supabase.from('cores').insert([{ nome: novaCor.trim() }]).select();
-    if (error) { alert(`Erro ao salvar cor: ${error.message}`); return; }
-    if (data) setCoresDB([...coresDB, data[0]]);
+    if (error) {
+      toast.error(`Erro ao salvar cor: ${error.message}`);
+      return;
+    }
+    if (data) {
+      setCoresDB([...coresDB, data[0]]);
+      toast.success('Cor cadastrada com sucesso!');
+    }
     setNovaCor('');
   };
 
   const handleDelCor = async (id: string) => {
     const { error } = await supabase.from('cores').delete().eq('id', id);
-    if (error) alert(`Erro ao apagar: ${error.message}`);
-    else setCoresDB(coresDB.filter(c => c.id !== id));
+    if (error) {
+      toast.error(`Erro ao apagar: ${error.message}`);
+    } else {
+      setCoresDB(coresDB.filter(c => c.id !== id));
+      toast.success('Cor removida.');
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!modelo || !valor) return;
+    if (!modelo || !valor) {
+      toast.warning('Preencha o modelo e o valor do serviço.');
+      return;
+    }
 
     onAdicionarVeiculo({
       placa: categoria, 

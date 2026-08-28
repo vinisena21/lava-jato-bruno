@@ -126,7 +126,7 @@ export function ListaVeiculos({ veiculos, onTogglePagamento, onExcluirVeiculo, u
               {userRole === 'dono' && (
                 <button
                   onClick={() => {
-                    if (v.id && window.confirm(`Deseja dar baixa no veículo ${v.modelo}?`)) {
+                    if (v.id) {
                       onExcluirVeiculo(v.id);
                     }
                   }}
