@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import type { RoleUsuario } from '../types';
@@ -8,7 +9,6 @@ export function GestaoUsuarios() {
   const [senha, setSenha] = useState('');
   const [role, setRole] = useState<RoleUsuario>('funcionario');
   const [loading, setLoading] = useState(false);
-  const [mensagem, setMensagem] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
 
   const [equipeDB, setEquipeDB] = useState<any[]>([]);
 
@@ -23,22 +23,22 @@ export function GestaoUsuarios() {
 
   const handleCriarUsuario = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !senha) return;
+    if (!email || !senha) {
+      toast.warning('Preencha o e-mail e a senha.');
+      return;
+    }
 
     if (senha.length < 6) {
-      setMensagem({ tipo: 'erro', texto: 'A senha deve ter pelo menos 6 caracteres.' });
+      toast.warning('A senha deve ter pelo menos 6 caracteres.');
       return;
     }
 
     try {
       setLoading(true);
-      setMensagem(null);
 
-      // Pega as credenciais do Supabase diretamente da instância existente
       const supabaseUrl = (supabase as any).supabaseUrl;
       const supabaseKey = (supabase as any).supabaseKey;
 
-      // Cria um cliente temporário sem persistir sessão para não deslogar o Dono atual
       const tempSupabase = createClient(supabaseUrl, supabaseKey, {
         auth: { persistSession: false }
       });
@@ -55,12 +55,12 @@ export function GestaoUsuarios() {
 
       if (error) throw error;
 
-      setMensagem({ tipo: 'sucesso', texto: `Usuário ${email} cadastrado com sucesso como ${role === 'dono' ? 'Administrador' : 'Colaborador'}!` });
+      toast.success(`Usuário ${email} cadastrado com sucesso como ${role === 'dono' ? 'Administrador' : 'Colaborador'}!`);
       setEmail('');
       setSenha('');
       setRole('funcionario');
     } catch (err: any) {
-      setMensagem({ tipo: 'erro', texto: err.message || 'Erro ao criar conta de usuário.' });
+      toast.error(err.message || 'Erro ao criar conta de usuário.');
     } finally {
       setLoading(false);
     }
@@ -86,12 +86,6 @@ export function GestaoUsuarios() {
           <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
             👤 Criar Novo Acesso ao Sistema
           </h3>
-
-          {mensagem && (
-            <div style={{ padding: '12px', borderRadius: '10px', marginBottom: '16px', fontSize: '13px', fontWeight: '700', backgroundColor: mensagem.tipo === 'sucesso' ? '#d1fae5' : '#ffe4e6', color: mensagem.tipo === 'sucesso' ? '#047857' : '#e11d48' }}>
-              {mensagem.texto}
-            </div>
-          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div>

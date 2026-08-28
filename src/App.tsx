@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Toaster, toast } from 'sonner';
 import type { Veiculo, Despesa, RoleUsuario } from './types';
 import { supabase } from './lib/supabase';
 import { FormularioVeiculo } from './components/FormularioVeiculo';
@@ -69,6 +70,7 @@ export function App() {
       if (data) setVeiculos(data as Veiculo[]);
     } catch (err) {
       console.error('Erro ao buscar veículos:', err);
+      toast.error('Erro ao carregar lista de veículos');
     } finally {
       setLoading(false);
     }
@@ -95,6 +97,7 @@ export function App() {
         .channel('realtime-veiculos')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'veiculos' }, () => {
           tocarSomNotificacao(); // TOCAR SOM!
+          toast.info('Novo veículo adicionado ao pátio!');
           buscarVeiculos();
         })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'veiculos' }, () => {
@@ -137,6 +140,7 @@ export function App() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    toast.info('Sessão encerrada.');
   };
 
   const handleAdicionarVeiculo = async (novoVeiculo: Veiculo) => {
@@ -144,9 +148,12 @@ export function App() {
       const veiculoComAutor = { ...novoVeiculo, criado_por: userEmail };
       const { data, error } = await supabase.from('veiculos').insert([veiculoComAutor]).select();
       if (error) throw error;
-      if (data) setVeiculos((prev) => [data[0] as Veiculo, ...prev]);
+      if (data) {
+        setVeiculos((prev) => [data[0] as Veiculo, ...prev]);
+        toast.success('Veículo cadastrado com sucesso!');
+      }
     } catch (err: any) {
-      alert(`Erro ao cadastrar veículo: ${err.message}`);
+      toast.error(`Erro ao cadastrar veículo: ${err.message}`);
     }
   };
 
@@ -155,19 +162,34 @@ export function App() {
       const { error } = await supabase.from('veiculos').update({ pago: !statusAtual }).eq('id', id);
       if (error) throw error;
       setVeiculos((prev) => prev.map((v) => (v.id === id ? { ...v, pago: !statusAtual } : v)));
+      toast.success(!statusAtual ? 'Pagamento confirmado!' : 'Status alterado para pendente.');
     } catch (err) {
       console.error('Erro ao atualizar pagamento:', err);
+      toast.error('Erro ao atualizar status de pagamento.');
     }
   };
 
-  const handleExcluirVeiculo = async (id: string) => {
-    try {
-      const { error } = await supabase.from('veiculos').delete().eq('id', id);
-      if (error) throw error;
-      setVeiculos((prev) => prev.filter((v) => v.id !== id));
-    } catch (err) {
-      alert('Erro ao excluir veículo no banco de dados.');
-    }
+  const handleExcluirVeiculo = (id: string) => {
+    toast('Deseja realmente remover este veículo?', {
+      description: 'Esta ação não poderá ser desfeita.',
+      action: {
+        label: 'Excluir',
+        onClick: async () => {
+          try {
+            const { error } = await supabase.from('veiculos').delete().eq('id', id);
+            if (error) throw error;
+            setVeiculos((prev) => prev.filter((v) => v.id !== id));
+            toast.success('Veículo removido do pátio com sucesso!');
+          } catch (err) {
+            toast.error('Erro ao excluir veículo no banco de dados.');
+          }
+        },
+      },
+      cancel: {
+        label: 'Cancelar',
+        onClick: () => toast.dismiss(),
+      },
+    });
   };
 
   const handleAdicionarDespesa = async (novaDespesa: Omit<Despesa, 'id'>) => {
@@ -175,20 +197,36 @@ export function App() {
       const despesaComAutor = { ...novaDespesa, criado_por: userEmail };
       const { data, error } = await supabase.from('despesas').insert([despesaComAutor]).select();
       if (error) throw error;
-      if (data) setDespesas((prev) => [data[0] as Despesa, ...prev]);
+      if (data) {
+        setDespesas((prev) => [data[0] as Despesa, ...prev]);
+        toast.success('Despesa lançada com sucesso!');
+      }
     } catch (err: any) {
-      alert(`Erro no banco de dados: ${err.message}`);
+      toast.error(`Erro no banco de dados: ${err.message}`);
     }
   };
 
-  const handleExcluirDespesa = async (id: string) => {
-    try {
-      const { error } = await supabase.from('despesas').delete().eq('id', id);
-      if (error) throw error;
-      setDespesas((prev) => prev.filter((d) => d.id !== id));
-    } catch (err) {
-      console.error('Erro ao excluir despesa:', err);
-    }
+  const handleExcluirDespesa = (id: string) => {
+    toast('Excluir este lançamento de despesa?', {
+      action: {
+        label: 'Excluir',
+        onClick: async () => {
+          try {
+            const { error } = await supabase.from('despesas').delete().eq('id', id);
+            if (error) throw error;
+            setDespesas((prev) => prev.filter((d) => d.id !== id));
+            toast.success('Despesa removida com sucesso!');
+          } catch (err) {
+            console.error('Erro ao excluir despesa:', err);
+            toast.error('Erro ao excluir despesa.');
+          }
+        },
+      },
+      cancel: {
+        label: 'Cancelar',
+        onClick: () => toast.dismiss(),
+      },
+    });
   };
 
   const veiculosFiltrados = veiculos.filter(
@@ -222,6 +260,8 @@ export function App() {
 
   return (
     <div className="app-container">
+      {/* Container global de Notificações Toast */}
+      <Toaster position="top-right" richColors closeButton />
       
       {/* Sidebar Lateral */}
       <aside className="sidebar">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import type { Veiculo, Despesa } from '../types';
 import { supabase } from '../lib/supabase';
 
@@ -69,7 +70,10 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
 
   const handleCadastrarSaida = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!descricao || !valorSaida) return;
+    if (!descricao || !valorSaida) {
+      toast.warning('Preencha a descrição e o valor da saída.');
+      return;
+    }
 
     onAdicionarDespesa({
       descricao,
