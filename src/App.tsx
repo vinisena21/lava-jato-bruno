@@ -147,9 +147,6 @@ export function App() {
     }
   };
 
-  // REGRA DO PÁTIO:
-  // 1. Veículo NÃO PAGO (!v.pago) -> SEMPRE aparece na tela até ser quitado!
-  // 2. Veículo PAGO (v.pago) -> Aparece enquanto a semana estiver aberta (!v.fechado).
   const veiculosAtivosNoPatio = veiculos.filter((v) => !v.pago || !v.fechado);
 
   const veiculosFiltrados = veiculosAtivosNoPatio.filter(

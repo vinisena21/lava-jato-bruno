@@ -171,7 +171,7 @@ export function Login() {
                   }}
                   title={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                 >
-                  {showPassword ? '🙈' : '👁️'}
+                  {showPassword ? '🙈' : '👁️  '}
                 </button>
               </div>
             </div>
