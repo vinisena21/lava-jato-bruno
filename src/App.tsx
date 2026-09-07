@@ -17,6 +17,9 @@ export function App() {
   const [abaAtiva, setAbaAtiva] = useState<'dashboard' | 'fila' | 'fechamento' | 'relatorios' | 'usuarios'>('dashboard');
   const [termoBusca, setTermoBusca] = useState('');
   
+  // Controle de visibilidade do menu lateral (esconder/mostrar)
+  const [menuAberto, setMenuAberto] = useState(false);
+
   const [idExcluir, setIdExcluir] = useState<string | null>(null);
   const [isModalAberto, setIsModalAberto] = useState(false);
   const [loadingExclusao, setLoadingExclusao] = useState(false);
@@ -56,6 +59,11 @@ export function App() {
     } catch (err: any) {
       toast.error(`Erro ao carregar dados: ${err.message}`);
     }
+  };
+
+  const handleNavegar = (aba: 'dashboard' | 'fila' | 'fechamento' | 'relatorios' | 'usuarios') => {
+    setAbaAtiva(aba);
+    setMenuAberto(false); // Esconde o menu automaticamente ao selecionar uma aba
   };
 
   const handleAdicionarVeiculo = async (novoVeiculo: Veiculo) => {
@@ -164,103 +172,77 @@ export function App() {
   );
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
       <Toaster position="top-right" richColors />
 
-      {/* NAVEGAÇÃO LATERAL */}
-      <aside style={{ width: '260px', backgroundColor: '#0f172a', color: '#ffffff', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-            <span style={{ fontSize: '24px' }}>💧</span>
-            <h1 style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: '#ffffff' }}>Lava-Rápido</h1>
-          </div>
-          <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase' }}>Gestão Operacional</span>
+      {/* BARRA SUPERIOR MOBILE DE TOPO (BOTÃO PARA ABRIR/ESCONDER MENU) */}
+      <header style={{
+        backgroundColor: '#0f172a',
+        color: '#ffffff',
+        padding: '12px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        justify: 'space-between',
+        borderBottom: '1px solid #1e293b',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '20px' }}>💧</span>
+          <span style={{ fontWeight: '800', fontSize: '16px' }}>Lava-Rápido</span>
         </div>
 
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <button
-            onClick={() => setAbaAtiva('dashboard')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '12px 16px',
-              borderRadius: '12px',
-              border: 'none',
-              fontSize: '13px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              backgroundColor: abaAtiva === 'dashboard' ? '#1e293b' : 'transparent',
-              color: abaAtiva === 'dashboard' ? '#38bdf8' : '#94a3b8',
-              textAlign: 'left',
-            }}
-          >
-            📊 Dashboard
-          </button>
+        <button
+          type="button"
+          onClick={() => setMenuAberto(!menuAberto)}
+          style={{
+            backgroundColor: '#1e293b',
+            color: '#38bdf8',
+            border: '1px solid #334155',
+            padding: '8px 14px',
+            borderRadius: '10px',
+            fontWeight: '800',
+            fontSize: '13px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          {menuAberto ? '✕ Esconder Menu' : '☰ Menu Principal'}
+        </button>
+      </header>
 
-          <button
-            onClick={() => setAbaAtiva('fila')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '12px 16px',
-              borderRadius: '12px',
-              border: 'none',
-              fontSize: '13px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              backgroundColor: abaAtiva === 'fila' ? '#1e293b' : 'transparent',
-              color: abaAtiva === 'fila' ? '#38bdf8' : '#94a3b8',
-              textAlign: 'left',
-            }}
-          >
-            🚗 Fila de Lavagem
-          </button>
+      <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
+        
+        {/* NAVEGAÇÃO LATERAL (PODE SER ESCONDIDA OU MOSTRADA) */}
+        <aside style={{
+          width: '260px',
+          backgroundColor: '#0f172a',
+          color: '#ffffff',
+          padding: '24px 16px',
+          display: menuAberto ? 'flex' : 'none', // Exibe apenas se ativado pelo botão
+          flexDirection: 'column',
+          gap: '24px',
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          left: 0,
+          zIndex: 90,
+          boxShadow: '4px 0 16px rgba(0,0,0,0.2)',
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+              <span style={{ fontSize: '24px' }}>💧</span>
+              <h1 style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: '#ffffff' }}>Lava-Rápido</h1>
+            </div>
+            <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase' }}>Gestão Operacional</span>
+          </div>
 
-          <button
-            onClick={() => setAbaAtiva('fechamento')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '12px 16px',
-              borderRadius: '12px',
-              border: 'none',
-              fontSize: '13px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              backgroundColor: abaAtiva === 'fechamento' ? '#1e293b' : 'transparent',
-              color: abaAtiva === 'fechamento' ? '#38bdf8' : '#94a3b8',
-              textAlign: 'left',
-            }}
-          >
-            💳 Fechamento / Caixa
-          </button>
-
-          <button
-            onClick={() => setAbaAtiva('relatorios')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '12px 16px',
-              borderRadius: '12px',
-              border: 'none',
-              fontSize: '13px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              backgroundColor: abaAtiva === 'relatorios' ? '#1e293b' : 'transparent',
-              color: abaAtiva === 'relatorios' ? '#38bdf8' : '#94a3b8',
-              textAlign: 'left',
-            }}
-          >
-            📈 Relatórios Gerenciais
-          </button>
-
-          {userRole === 'dono' && (
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <button
-              onClick={() => setAbaAtiva('usuarios')}
+              onClick={() => handleNavegar('dashboard')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -271,41 +253,163 @@ export function App() {
                 fontSize: '13px',
                 fontWeight: '700',
                 cursor: 'pointer',
-                backgroundColor: abaAtiva === 'usuarios' ? '#1e293b' : 'transparent',
-                color: abaAtiva === 'usuarios' ? '#38bdf8' : '#94a3b8',
+                backgroundColor: abaAtiva === 'dashboard' ? '#1e293b' : 'transparent',
+                color: abaAtiva === 'dashboard' ? '#38bdf8' : '#94a3b8',
                 textAlign: 'left',
               }}
             >
-              👥 Usuários & Segurança
+              📊 Dashboard
             </button>
-          )}
-        </nav>
-      </aside>
 
-      {/* ÁREA DE CONTEÚDO */}
-      <main style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
-        
-        {/* DASHBOARD PRINCIPAL */}
-        {abaAtiva === 'dashboard' && (
-          <div>
-            <div style={{ marginBottom: '24px' }}>
-              <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>DASHBOARD / ÁREA ADMINISTRATIVA</span>
-              <h2 style={{ fontSize: '24px', fontWeight: '900', color: '#0f172a', margin: '4px 0 0 0' }}>Dashboard Gerencial</h2>
+            <button
+              onClick={() => handleNavegar('fila')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                border: 'none',
+                fontSize: '13px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                backgroundColor: abaAtiva === 'fila' ? '#1e293b' : 'transparent',
+                color: abaAtiva === 'fila' ? '#38bdf8' : '#94a3b8',
+                textAlign: 'left',
+              }}
+            >
+              🚗 Fila de Lavagem
+            </button>
+
+            <button
+              onClick={() => handleNavegar('fechamento')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                border: 'none',
+                fontSize: '13px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                backgroundColor: abaAtiva === 'fechamento' ? '#1e293b' : 'transparent',
+                color: abaAtiva === 'fechamento' ? '#38bdf8' : '#94a3b8',
+                textAlign: 'left',
+              }}
+            >
+              💳 Fechamento / Caixa
+            </button>
+
+            <button
+              onClick={() => handleNavegar('relatorios')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                border: 'none',
+                fontSize: '13px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                backgroundColor: abaAtiva === 'relatorios' ? '#1e293b' : 'transparent',
+                color: abaAtiva === 'relatorios' ? '#38bdf8' : '#94a3b8',
+                textAlign: 'left',
+              }}
+            >
+              📈 Relatórios Gerenciais
+            </button>
+
+            {userRole === 'dono' && (
+              <button
+                onClick={() => handleNavegar('usuarios')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  backgroundColor: abaAtiva === 'usuarios' ? '#1e293b' : 'transparent',
+                  color: abaAtiva === 'usuarios' ? '#38bdf8' : '#94a3b8',
+                  textAlign: 'left',
+                }}
+              >
+                👥 Usuários & Segurança
+              </button>
+            )}
+          </nav>
+        </aside>
+
+        {/* ÁREA DE CONTEÚDO PRINCIPAL (OCUPA 100% DA TELA QUANDO O MENU ESTÁ FECHADO) */}
+        <main style={{ flex: 1, padding: '20px', overflowY: 'auto', width: '100%' }}>
+          
+          {/* DASHBOARD PRINCIPAL */}
+          {abaAtiva === 'dashboard' && (
+            <div>
+              <div style={{ marginBottom: '20px' }}>
+                <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>DASHBOARD / ÁREA ADMINISTRATIVA</span>
+                <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a', margin: '4px 0 0 0' }}>Dashboard Gerencial</h2>
+              </div>
+
+              <FechamentoSemanal
+                veiculos={veiculos}
+                despesas={despesas}
+                onAdicionarDespesa={handleAdicionarDespesa}
+                onExcluirDespesa={handleExcluirDespesa}
+              />
+
+              <FormularioVeiculo onAdicionarVeiculo={handleAdicionarVeiculo} userRole={userRole} />
+
+              <div style={{ marginTop: '32px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', marginBottom: '16px' }}>
+                  Veículos em Pátio ({veiculosFiltrados.length})
+                </h3>
+                <ListaVeiculos
+                  veiculos={veiculosFiltrados}
+                  onTogglePagamento={handleTogglePagamento}
+                  onExcluirVeiculo={handleSolicitarExclusao}
+                  userRole={userRole}
+                />
+              </div>
             </div>
+          )}
 
-            <FechamentoSemanal
-              veiculos={veiculos}
-              despesas={despesas}
-              onAdicionarDespesa={handleAdicionarDespesa}
-              onExcluirDespesa={handleExcluirDespesa}
-            />
+          {/* FILA DE LAVAGEM */}
+          {abaAtiva === 'fila' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>PÁTIO / FILA DE ESPERA</span>
+                  <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a', margin: '4px 0 0 0' }}>
+                    Veículos em Pátio ({veiculosFiltrados.length})
+                  </h2>
+                </div>
 
-            <FormularioVeiculo onAdicionarVeiculo={handleAdicionarVeiculo} userRole={userRole} />
+                <input
+                  type="text"
+                  placeholder="🔍 Buscar por modelo, cor, lavador..."
+                  value={termoBusca}
+                  onChange={(e) => setTermoBusca(e.target.value)}
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: '12px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    outline: 'none',
+                    width: '100%',
+                    maxWidth: '300px',
+                    backgroundColor: '#ffffff',
+                  }}
+                />
+              </div>
 
-            <div style={{ marginTop: '32px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', marginBottom: '16px' }}>
-                Veículos em Pátio ({veiculosFiltrados.length})
-              </h3>
+              <FormularioVeiculo onAdicionarVeiculo={handleAdicionarVeiculo} userRole={userRole} />
+
               <ListaVeiculos
                 veiculos={veiculosFiltrados}
                 onTogglePagamento={handleTogglePagamento}
@@ -313,89 +417,50 @@ export function App() {
                 userRole={userRole}
               />
             </div>
-          </div>
-        )}
+          )}
 
-        {/* FILA DE LAVAGEM */}
-        {abaAtiva === 'fila' && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-              <div>
-                <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>PÁTIO / FILA DE ESPERA</span>
-                <h2 style={{ fontSize: '24px', fontWeight: '900', color: '#0f172a', margin: '4px 0 0 0' }}>
-                  Veículos em Pátio ({veiculosFiltrados.length})
-                </h2>
+          {/* FECHAMENTO / CAIXA */}
+          {abaAtiva === 'fechamento' && (
+            <div>
+              <div style={{ marginBottom: '24px' }}>
+                <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>FECHAMENTO & GESTÃO FINANCEIRA</span>
+                <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a', margin: '4px 0 0 0' }}>Fechamento / Caixa</h2>
               </div>
 
-              <input
-                type="text"
-                placeholder="🔍 Buscar por modelo, cor, lavador..."
-                value={termoBusca}
-                onChange={(e) => setTermoBusca(e.target.value)}
-                style={{
-                  padding: '10px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '13px',
-                  outline: 'none',
-                  width: '280px',
-                  backgroundColor: '#ffffff',
-                }}
+              <FechamentoSemanal
+                veiculos={veiculos}
+                despesas={despesas}
+                onAdicionarDespesa={handleAdicionarDespesa}
+                onExcluirDespesa={handleExcluirDespesa}
               />
             </div>
+          )}
 
-            <FormularioVeiculo onAdicionarVeiculo={handleAdicionarVeiculo} userRole={userRole} />
+          {/* RELATÓRIOS GERENCIAIS */}
+          {abaAtiva === 'relatorios' && (
+            <div>
+              <div style={{ marginBottom: '24px' }}>
+                <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>HISTÓRICO & DESEMPENHO</span>
+                <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a', margin: '4px 0 0 0' }}>Relatórios Gerenciais</h2>
+              </div>
 
-            <ListaVeiculos
-              veiculos={veiculosFiltrados}
-              onTogglePagamento={handleTogglePagamento}
-              onExcluirVeiculo={handleSolicitarExclusao}
-              userRole={userRole}
-            />
-          </div>
-        )}
-
-        {/* FECHAMENTO / CAIXA */}
-        {abaAtiva === 'fechamento' && (
-          <div>
-            <div style={{ marginBottom: '24px' }}>
-              <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>FECHAMENTO & GESTÃO FINANCEIRA</span>
-              <h2 style={{ fontSize: '24px', fontWeight: '900', color: '#0f172a', margin: '4px 0 0 0' }}>Fechamento / Caixa</h2>
+              <RelatorioGerencial veiculos={veiculos} despesas={despesas} userEmail={userEmail} />
             </div>
+          )}
 
-            <FechamentoSemanal
-              veiculos={veiculos}
-              despesas={despesas}
-              onAdicionarDespesa={handleAdicionarDespesa}
-              onExcluirDespesa={handleExcluirDespesa}
-            />
-          </div>
-        )}
+          {/* USUÁRIOS */}
+          {abaAtiva === 'usuarios' && userRole === 'dono' && (
+            <div>
+              <div style={{ marginBottom: '24px' }}>
+                <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>ADMINISTRAÇÃO DE ACESSOS</span>
+                <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a', margin: '4px 0 0 0' }}>Usuários & Segurança</h2>
+              </div>
 
-        {/* RELATÓRIOS GERENCIAIS */}
-        {abaAtiva === 'relatorios' && (
-          <div>
-            <div style={{ marginBottom: '24px' }}>
-              <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>HISTÓRICO & DESEMPENHO</span>
-              <h2 style={{ fontSize: '24px', fontWeight: '900', color: '#0f172a', margin: '4px 0 0 0' }}>Relatórios Gerenciais</h2>
+              <GestaoUsuarios />
             </div>
-
-            <RelatorioGerencial veiculos={veiculos} despesas={despesas} userEmail={userEmail} />
-          </div>
-        )}
-
-        {/* USUÁRIOS */}
-        {abaAtiva === 'usuarios' && userRole === 'dono' && (
-          <div>
-            <div style={{ marginBottom: '24px' }}>
-              <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>ADMINISTRAÇÃO DE ACESSOS</span>
-              <h2 style={{ fontSize: '24px', fontWeight: '900', color: '#0f172a', margin: '4px 0 0 0' }}>Usuários & Segurança</h2>
-            </div>
-
-            <GestaoUsuarios />
-          </div>
-        )}
-      </main>
+          )}
+        </main>
+      </div>
 
       <ConfirmModal
         isOpen={isModalAberto}
