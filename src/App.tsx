@@ -13,7 +13,8 @@ export function App() {
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
   const [despesas, setDespesas] = useState<Despesa[]>([]);
   const [userRole, setUserRole] = useState<RoleUsuario>('dono');
-  const [abaAtiva, setAbaAtiva] = useState<'fila' | 'dashboard' | 'relatorios' | 'usuarios'>('dashboard');
+  const [userEmail, setUserEmail] = useState<string>('');
+  const [abaAtiva, setAbaAtiva] = useState<'dashboard' | 'fila' | 'fechamento' | 'relatorios' | 'usuarios'>('dashboard');
   const [termoBusca, setTermoBusca] = useState('');
   
   const [idExcluir, setIdExcluir] = useState<string | null>(null);
@@ -27,8 +28,11 @@ export function App() {
 
   const verificarUsuario = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (user && user.user_metadata?.role) {
-      setUserRole(user.user_metadata.role as RoleUsuario);
+    if (user) {
+      setUserEmail(user.email || '');
+      if (user.user_metadata?.role) {
+        setUserRole(user.user_metadata.role as RoleUsuario);
+      }
     }
   };
 
@@ -191,7 +195,7 @@ export function App() {
               textAlign: 'left',
             }}
           >
-            📊 Dashboard / Caixa
+            📊 Dashboard
           </button>
 
           <button
@@ -211,7 +215,27 @@ export function App() {
               textAlign: 'left',
             }}
           >
-            🚗 Fila de Lavagem ({veiculosAtivosNoPatio.length})
+            🚗 Fila de Lavagem
+          </button>
+
+          <button
+            onClick={() => setAbaAtiva('fechamento')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              border: 'none',
+              fontSize: '13px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              backgroundColor: abaAtiva === 'fechamento' ? '#1e293b' : 'transparent',
+              color: abaAtiva === 'fechamento' ? '#38bdf8' : '#94a3b8',
+              textAlign: 'left',
+            }}
+          >
+            💳 Fechamento / Caixa
           </button>
 
           <button
@@ -261,7 +285,7 @@ export function App() {
       {/* ÁREA DE CONTEÚDO */}
       <main style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
         
-        {/* DASHBOARD */}
+        {/* DASHBOARD PRINCIPAL */}
         {abaAtiva === 'dashboard' && (
           <div>
             <div style={{ marginBottom: '24px' }}>
@@ -277,6 +301,18 @@ export function App() {
             />
 
             <FormularioVeiculo onAdicionarVeiculo={handleAdicionarVeiculo} userRole={userRole} />
+
+            <div style={{ marginTop: '32px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', marginBottom: '16px' }}>
+                Veículos em Pátio ({veiculosFiltrados.length})
+              </h3>
+              <ListaVeiculos
+                veiculos={veiculosFiltrados}
+                onTogglePagamento={handleTogglePagamento}
+                onExcluirVeiculo={handleSolicitarExclusao}
+                userRole={userRole}
+              />
+            </div>
           </div>
         )}
 
@@ -319,6 +355,23 @@ export function App() {
           </div>
         )}
 
+        {/* FECHAMENTO / CAIXA */}
+        {abaAtiva === 'fechamento' && (
+          <div>
+            <div style={{ marginBottom: '24px' }}>
+              <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>FECHAMENTO & GESTÃO FINANCEIRA</span>
+              <h2 style={{ fontSize: '24px', fontWeight: '900', color: '#0f172a', margin: '4px 0 0 0' }}>Fechamento / Caixa</h2>
+            </div>
+
+            <FechamentoSemanal
+              veiculos={veiculos}
+              despesas={despesas}
+              onAdicionarDespesa={handleAdicionarDespesa}
+              onExcluirDespesa={handleExcluirDespesa}
+            />
+          </div>
+        )}
+
         {/* RELATÓRIOS GERENCIAIS */}
         {abaAtiva === 'relatorios' && (
           <div>
@@ -327,7 +380,7 @@ export function App() {
               <h2 style={{ fontSize: '24px', fontWeight: '900', color: '#0f172a', margin: '4px 0 0 0' }}>Relatórios Gerenciais</h2>
             </div>
 
-            <RelatorioGerencial veiculos={veiculos} despesas={despesas} userEmail={''} />
+            <RelatorioGerencial veiculos={veiculos} despesas={despesas} userEmail={userEmail} />
           </div>
         )}
 
