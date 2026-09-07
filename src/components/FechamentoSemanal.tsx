@@ -20,7 +20,7 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
   const [funcionarioSelecionado, setFuncionarioSelecionado] = useState('');
   const [sugestaoIa, setSugestaoIa] = useState<number | null>(null);
 
-  // Veículos divididos por status
+  // Filtra itens ativos da semana
   const veiculosPagosAbertos = veiculos.filter((v) => v.pago && !v.fechado);
   const veiculosPendentes = veiculos.filter((v) => !v.pago);
   const despesasAtivas = despesas.filter((d) => !d.fechado);
@@ -54,31 +54,40 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
     try {
       setLoadingFechamento(true);
 
+      const faturamentoTotal = veiculosPagosAbertos.reduce((acc, v) => acc + Number(v.valor), 0);
+      const despesasTotal = despesasAtivas.reduce((acc, d) => acc + Number(d.valor), 0);
+      const saldoFinal = faturamentoTotal - despesasTotal;
+
+      // 1. SALVA O HISTÓRICO COMPLETO COM TODAS AS DESPESAS E VEÍCULOS QUITADOS DA SEMANA
+      const { error: errFechamento } = await supabase.from('fechamentos_caixa').insert([
+        {
+          faturamento_pagos: faturamentoTotal,
+          total_despesas: despesasTotal,
+          saldo_final: saldoFinal,
+          total_veiculos: veiculosPagosAbertos.length,
+          despesas_json: despesasAtivas,
+          veiculos_json: veiculosPagosAbertos,
+        },
+      ]);
+
+      if (errFechamento) throw errFechamento;
+
+      // 2. ARQUIVA OS REGISTROS NO BANCO (fechado = true)
       const idsVeiculosPagos = veiculosPagosAbertos.map((v) => v.id).filter(Boolean);
       const idsDespesasParaFechar = despesasAtivas.map((d) => d.id).filter(Boolean);
 
       if (idsVeiculosPagos.length > 0) {
-        const { error: errVeiculos } = await supabase
-          .from('veiculos')
-          .update({ fechado: true })
-          .in('id', idsVeiculosPagos);
-
-        if (errVeiculos) throw errVeiculos;
+        await supabase.from('veiculos').update({ fechado: true }).in('id', idsVeiculosPagos);
       }
 
       if (idsDespesasParaFechar.length > 0) {
-        const { error: errDespesas } = await supabase
-          .from('despesas')
-          .update({ fechado: true })
-          .in('id', idsDespesasParaFechar);
-
-        if (errDespesas) throw errDespesas;
+        await supabase.from('despesas').update({ fechado: true }).in('id', idsDespesasParaFechar);
       }
 
       if (isAutomatico) {
-        toast.info('🔒 Fechamento automático! Veículos pagos foram arquivados. Contratos e valores a receber continuam ativos no pátio.');
+        toast.info('🔒 Fechamento automático realizado! Todos os gastos foram salvos no relatório.');
       } else {
-        toast.success('✅ Fechamento concluído! Veículos pagos foram arquivados. Contratos e pendências permanecem disponíveis.');
+        toast.success('✅ Fechamento concluído! Gastos salvos no histórico para emissão de PDF.');
       }
 
       window.location.reload();
@@ -91,7 +100,7 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
 
   const handleConfirmarFechamentoManual = () => {
     toast('Deseja fechar o caixa desta semana?', {
-      description: 'Apenas os veículos quitados e despesas serão arquivados. Todos os contratos e pendências permanecerão no pátio.',
+      description: 'Todos os gastos e faturamentos da semana serão gravados permanentemente no relatório com opção de gerar PDF.',
       action: {
         label: 'Fechar Semana',
         onClick: () => executarFechamentoCaixa(false),
