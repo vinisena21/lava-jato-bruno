@@ -44,8 +44,8 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
     const eSabadoApos20h = diaDaSemana === 6 && hora >= 20;
     const eDomingo = diaDaSemana === 0;
 
-    // Se houver registros em aberto no Sábado após as 20h ou no Domingo, fecha o caixa automaticamente
-    if ((eSabadoApos20h || eDomingo) && (veiculosAtivos.length > 0 || despesasAtivas.length > 0)) {
+    const temPagosParaFechar = veiculosAtivos.some(v => v.pago);
+    if ((eSabadoApos20h || eDomingo) && (temPagosParaFechar || despesasAtivas.length > 0)) {
       await executarFechamentoCaixa(true);
     }
   };
@@ -54,24 +54,33 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
     try {
       setLoadingFechamento(true);
 
-      // Marca veículos ativos como fechados
-      const { error: errVeiculos } = await supabase
-        .from('veiculos')
-        .update({ fechado: true })
-        .or('fechado.is.null,fechado.eq.false');
+      // Arquiva apenas veículos PAGOS da semana. Pendentes e Contratos continuam ativos no pátio!
+      const veiculosPagosAtivos = veiculosAtivos.filter((v) => v.pago);
+      const idsVeiculosParaFechar = veiculosPagosAtivos.map((v) => v.id).filter(Boolean);
+      const idsDespesasParaFechar = despesasAtivas.map((d) => d.id).filter(Boolean);
 
-      // Marca despesas ativas como fechadas
-      const { error: errDespesas } = await supabase
-        .from('despesas')
-        .update({ fechado: true })
-        .or('fechado.is.null,fechado.eq.false');
+      if (idsVeiculosParaFechar.length > 0) {
+        const { error: errVeiculos } = await supabase
+          .from('veiculos')
+          .update({ fechado: true })
+          .in('id', idsVeiculosParaFechar);
 
-      if (errVeiculos || errDespesas) throw new Error('Erro ao atualizar banco de dados.');
+        if (errVeiculos) throw errVeiculos;
+      }
+
+      if (idsDespesasParaFechar.length > 0) {
+        const { error: errDespesas } = await supabase
+          .from('despesas')
+          .update({ fechado: true })
+          .in('id', idsDespesasParaFechar);
+
+        if (errDespesas) throw errDespesas;
+      }
 
       if (isAutomatico) {
-        toast.info('🔒 Fechamento semanal automático realizado (Sábado 20h)! O pátio foi preparado para a nova semana.');
+        toast.info('🔒 Fechamento automático semanal! Veículos pagos e despesas arquivados. Contratos e pendências mantidos.');
       } else {
-        toast.success('✅ Fechamento de caixa concluído! O pátio e o painel estão prontos para a nova semana.');
+        toast.success('✅ Caixa fechado! Veículos pagos foram arquivados. Contratos e pendências continuam no pátio.');
       }
 
       window.location.reload();
@@ -84,7 +93,7 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
 
   const handleConfirmarFechamentoManual = () => {
     toast('Deseja encerrar e fechar o caixa desta semana?', {
-      description: 'Os valores serão arquivados para relatórios e o painel será zerado para os novos lançamentos da semana.',
+      description: 'Apenas os veículos já pagos e as despesas serão arquivados. Contratos e veículos pendentes permanecerão no pátio.',
       action: {
         label: 'Fechar Semana',
         onClick: () => executarFechamentoCaixa(false),
@@ -178,11 +187,11 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
   return (
     <div style={{ marginBottom: '28px' }}>
       
-      {/* CABEÇALHO COM BOTÃO DE FECHAMENTO MANAUL DA SEMANA */}
+      {/* CABEÇALHO COM BOTÃO DE FECHAMENTO MANUAL DA SEMANA */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <span style={{ fontSize: '11px', fontWeight: '800', color: '#10b981', backgroundColor: '#ecfdf5', padding: '4px 10px', borderRadius: '12px', border: '1px solid #a7f3d0' }}>
-            ● Semana Atual em Aberto
+            ● Caixa da Semana em Aberto
           </span>
         </div>
 
