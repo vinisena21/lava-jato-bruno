@@ -8,8 +8,12 @@ import { FechamentoSemanal } from './components/FechamentoSemanal';
 import { GestaoUsuarios } from './components/GestaoUsuarios';
 import { RelatorioGerencial } from './components/RelatorioGerencial';
 import { ConfirmModal } from './components/ConfirmModal';
+import { Login } from './components/Login';
 
 export function App() {
+  const [session, setSession] = useState<any>(null);
+  const [carregandoSessao, setCarregandoSessao] = useState(true);
+
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
   const [despesas, setDespesas] = useState<Despesa[]>([]);
   const [userRole, setUserRole] = useState<RoleUsuario>('dono');
@@ -17,17 +21,35 @@ export function App() {
   const [abaAtiva, setAbaAtiva] = useState<'dashboard' | 'fila' | 'fechamento' | 'relatorios' | 'usuarios'>('dashboard');
   const [termoBusca, setTermoBusca] = useState('');
   
-  // Controle de visibilidade do menu lateral (esconder/mostrar no celular)
   const [menuAberto, setMenuAberto] = useState(false);
 
   const [idExcluir, setIdExcluir] = useState<string | null>(null);
   const [isModalAberto, setIsModalAberto] = useState(false);
   const [loadingExclusao, setLoadingExclusao] = useState(false);
 
+  // ESCUTA O STATUS DA SESSÃO/LOGIN NO SUPABASE
   useEffect(() => {
-    carregarDados();
-    verificarUsuario();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setCarregandoSessao(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setCarregandoSessao(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (session) {
+      carregarDados();
+      verificarUsuario();
+    }
+  }, [session]);
 
   const verificarUsuario = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -66,12 +88,11 @@ export function App() {
     setMenuAberto(false);
   };
 
-  // Função para deslogar / trocar de conta
+  // SAIR / DESLOGAR
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
       toast.success('Sessão encerrada com sucesso!');
-      window.location.reload();
     } catch (err: any) {
       toast.error(`Erro ao encerrar sessão: ${err.message}`);
     }
@@ -171,6 +192,28 @@ export function App() {
     }
   };
 
+  // TELA DE CARREGAMENTO INICIAL
+  if (carregandoSessao) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a', color: '#38bdf8', fontFamily: 'system-ui, sans-serif' }}>
+        <div style={{ textAlign: 'center' }}>
+          <span style={{ fontSize: '32px' }}>💧</span>
+          <p style={{ fontWeight: '700', marginTop: '12px' }}>Carregando Lava-Rápido...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // SE NÃO HOUVER USUÁRIO LOGADO, EXIBE A TELA DE LOGIN
+  if (!session) {
+    return (
+      <>
+        <Toaster position="top-right" richColors />
+        <Login />
+      </>
+    );
+  }
+
   const veiculosAtivosNoPatio = veiculos.filter((v) => !v.pago || !v.fechado);
 
   const veiculosFiltrados = veiculosAtivosNoPatio.filter(
@@ -222,7 +265,7 @@ export function App() {
               gap: '6px'
             }}
           >
-            {menuAberto ? '✕ Esconder Menu' : '☰ Menu'}
+            {menuAberto ? '✕ Esconder' : '☰ Menu'}
           </button>
 
           <button
@@ -250,7 +293,7 @@ export function App() {
 
       <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
         
-        {/* NAVEGAÇÃO LATERAL (POSSUI O BOTÃO DE SAIR E O PERFIL DO USUÁRIO) */}
+        {/* NAVEGAÇÃO LATERAL */}
         <aside style={{
           width: '260px',
           backgroundColor: '#0f172a',
