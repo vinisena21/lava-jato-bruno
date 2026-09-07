@@ -54,7 +54,6 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
     try {
       setLoadingFechamento(true);
 
-      // IDs de veículos pagos que serão arquivados nesta semana
       const idsVeiculosPagos = veiculosPagosAbertos.map((v) => v.id).filter(Boolean);
       const idsDespesasParaFechar = despesasAtivas.map((d) => d.id).filter(Boolean);
 
@@ -160,7 +159,6 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
     setSugestaoIa(null);
   };
 
-  // CÁLCULOS DO DASHBOARD
   const faturamentoPagos = veiculosPagosAbertos.reduce((acc, v) => acc + Number(v.valor), 0);
   const totalContratos = veiculosPendentes.reduce((acc, v) => acc + Number(v.valor), 0);
   const totalDispensa = despesasAtivas.filter(d => d.tipo === 'dispensa').reduce((acc, d) => acc + Number(d.valor), 0);
