@@ -8,12 +8,20 @@ interface FechamentoProps {
   despesas: Despesa[];
   onAdicionarDespesa: (despesa: Omit<Despesa, 'id'>) => void;
   onExcluirDespesa: (id: string) => void;
+  onCaixaFechado?: () => void; // Callback para recarregar os dados na tela inicial
 }
 
-export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onExcluirDespesa }: FechamentoProps) {
+export function FechamentoSemanal({ 
+  veiculos, 
+  despesas, 
+  onAdicionarDespesa, 
+  onExcluirDespesa,
+  onCaixaFechado 
+}: FechamentoProps) {
   const [descricao, setDescricao] = useState('');
   const [valorSaida, setValorSaida] = useState('');
   const [tipoSaida, setTipoSaida] = useState<'dispensa' | 'funcionario' | 'pessoal'>('dispensa');
+  const [isFechandoCaixa, setIsFechandoCaixa] = useState(false);
   
   // Controle de Funcionários e Sugestão
   const [equipeDB, setEquipeDB] = useState<any[]>([]);
@@ -96,6 +104,68 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
   const totalPagFuncionarios = despesas.filter(d => d.tipo === 'funcionario').reduce((acc, d) => acc + Number(d.valor), 0);
   const saldoFinalCaixa = faturamentoPagos - totalDispensa - totalPagFuncionarios;
 
+  // Lógica para Fechamento do Caixa
+  const handleFecharCaixa = async () => {
+    if (veiculos.length === 0 && despesas.length === 0) {
+      toast.info('O caixa atual já está limpo e sem movimentações.');
+      return;
+    }
+
+    const confirmacao = window.confirm(
+      `Deseja realmente fechar o caixa atual?\n\n` +
+      `• Faturamento: R$ ${faturamentoPagos.toFixed(2)}\n` +
+      `• Saldo Final: R$ ${saldoFinalCaixa.toFixed(2)}\n\n` +
+      `Isso irá limpar a tela inicial e salvar o relatório no histórico.`
+    );
+
+    if (!confirmacao) return;
+
+    setIsFechandoCaixa(true);
+    try {
+      // 1. Salva o registro compilado do fechamento do caixa
+      const { error: errorCaixa } = await supabase.from('fechamentos_caixa').insert([
+        {
+          data_fechamento: new Date().toISOString(),
+          faturamento_total: faturamentoPagos,
+          total_contratos: totalContratos,
+          total_dispensa: totalDispensa,
+          total_pag_funcionarios: totalPagFuncionarios,
+          saldo_final: saldoFinalCaixa,
+          qtd_veiculos: veiculos.length
+        }
+      ]);
+
+      if (errorCaixa) throw errorCaixa;
+
+      // 2. Atualiza o status dos veículos do caixa atual para 'fechado'
+      const { error: errorVeiculos } = await supabase
+        .from('veiculos')
+        .update({ status: 'fechado' })
+        .eq('status', 'aberto');
+
+      if (errorVeiculos) throw errorVeiculos;
+
+      // 3. Atualiza o status das despesas do caixa atual para 'fechado'
+      const { error: errorDespesas } = await supabase
+        .from('despesas')
+        .update({ status: 'fechado' })
+        .eq('status', 'aberto');
+
+      if (errorDespesas) throw errorDespesas;
+
+      toast.success('Caixa fechado com sucesso! A tela foi limpa para o novo ciclo.');
+      
+      // Notifica o componente pai para recarregar/limpar o estado
+      if (onCaixaFechado) {
+        onCaixaFechado();
+      }
+    } catch (err: any) {
+      toast.error('Erro ao fechar o caixa: ' + (err.message || 'Tente novamente.'));
+    } finally {
+      setIsFechandoCaixa(false);
+    }
+  };
+
   const inputStyle: React.CSSProperties = {
     padding: '10px 12px',
     borderRadius: '10px',
@@ -151,7 +221,7 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
         </div>
       </div>
 
-      {/* FORMULÁRIO DE LANÇAMENTO DE SAÍDAS */}
+      {/* FORMULÁRIO DE LANÇAMENTO DE SAÍDAS E AÇÃO DE FECHAR CAIXA */}
       <form onSubmit={handleCadastrarSaida} style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '20px', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.04)' }}>
         <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
           💸 Lançar Saída / Gastos do Lava-Jato
@@ -243,10 +313,10 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
           </div>
         )}
 
-        {/* LISTA DE SAÍDAS RECENTES */}
+        {/* LISTA DE SAÍDAS RECENTES DO CAIXA ATUAL */}
         {despesas.length > 0 && (
           <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
-            <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>Saídas Lançadas:</span>
+            <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>Saídas Lançadas neste Caixa:</span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
               {despesas.map((d) => (
                 <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: '700' }}>
@@ -260,6 +330,37 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
             </div>
           </div>
         )}
+
+        {/* ÁREA / BOTÃO PARA FECHAR CAIXA */}
+        <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '2px dashed #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>Encerrar Período / Caixa Atual</h4>
+            <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#64748b' }}>Finaliza o caixa, limpa os registros do pátio na tela inicial e envia tudo para os relatórios.</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleFecharCaixa}
+            disabled={isFechandoCaixa}
+            style={{
+              backgroundColor: '#0f172a',
+              color: '#ffffff',
+              padding: '12px 20px',
+              borderRadius: '12px',
+              border: 'none',
+              fontWeight: '800',
+              fontSize: '13px',
+              cursor: isFechandoCaixa ? 'not-allowed' : 'pointer',
+              opacity: isFechandoCaixa ? 0.7 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)'
+            }}
+          >
+            {isFechandoCaixa ? 'Fechando...' : '🔒 Fechar Caixa Atual'}
+          </button>
+        </div>
+
       </form>
     </div>
   );
