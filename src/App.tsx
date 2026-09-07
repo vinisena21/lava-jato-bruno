@@ -11,11 +11,10 @@ import { ConfirmModal } from './components/ConfirmModal';
 export function App() {
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
   const [despesas, setDespesas] = useState<Despesa[]>([]);
-  const [userRole, setUserRole] = useState<RoleUsuario>('dono'); // 'dono' ou 'funcionario'
+  const [userRole, setUserRole] = useState<RoleUsuario>('dono');
   const [abaAtiva, setAbaAtiva] = useState<'fila' | 'dashboard' | 'usuarios'>('dashboard');
   const [termoBusca, setTermoBusca] = useState('');
   
-  // Controle do Modal de Exclusão/Baixa
   const [idExcluir, setIdExcluir] = useState<string | null>(null);
   const [isModalAberto, setIsModalAberto] = useState(false);
   const [loadingExclusao, setLoadingExclusao] = useState(false);
@@ -34,7 +33,6 @@ export function App() {
 
   const carregarDados = async () => {
     try {
-      // Carrega veículos
       const { data: dataVeiculos, error: errV } = await supabase
         .from('veiculos')
         .select('*')
@@ -43,7 +41,6 @@ export function App() {
       if (errV) throw errV;
       if (dataVeiculos) setVeiculos(dataVeiculos);
 
-      // Carrega despesas
       const { data: dataDespesas, error: errD } = await supabase
         .from('despesas')
         .select('*')
@@ -56,7 +53,6 @@ export function App() {
     }
   };
 
-  // Cadastrar Veículo
   const handleAdicionarVeiculo = async (novoVeiculo: Veiculo) => {
     try {
       const { data, error } = await supabase
@@ -75,7 +71,6 @@ export function App() {
     }
   };
 
-  // Alternar Status de Pagamento (Pago / Pendente)
   const handleTogglePagamento = async (id: string, statusAtual: boolean) => {
     try {
       const novoStatus = !statusAtual;
@@ -97,13 +92,11 @@ export function App() {
     }
   };
 
-  // Solicitar Dar Baixa / Excluir
   const handleSolicitarExclusao = (id: string) => {
     setIdExcluir(id);
     setIsModalAberto(true);
   };
 
-  // Confirmar Exclusão do Veículo
   const handleConfirmarExclusao = async () => {
     if (!idExcluir) return;
 
@@ -114,7 +107,7 @@ export function App() {
       if (error) throw error;
 
       setVeiculos(veiculos.filter(v => v.id !== idExcluir));
-      toast.success('Veículo removido do pátio com sucesso!');
+      toast.success('Veículo removido com sucesso!');
     } catch (err: any) {
       toast.error(`Erro ao remover veículo: ${err.message}`);
     } finally {
@@ -124,7 +117,6 @@ export function App() {
     }
   };
 
-  // Cadastrar Despesa / Saída
   const handleAdicionarDespesa = async (novaDespesa: Omit<Despesa, 'id'>) => {
     try {
       const { data, error } = await supabase
@@ -136,14 +128,13 @@ export function App() {
 
       if (data && data.length > 0) {
         setDespesas([data[0], ...despesas]);
-        toast.success('Saída/Gasto registrado com sucesso!');
+        toast.success('Saída registrada com sucesso!');
       }
     } catch (err: any) {
       toast.error(`Erro ao registrar saída: ${err.message}`);
     }
   };
 
-  // Excluir Despesa
   const handleExcluirDespesa = async (id: string) => {
     try {
       const { error } = await supabase.from('despesas').delete().eq('id', id);
@@ -156,10 +147,12 @@ export function App() {
     }
   };
 
-  // FILTRO: Exibe apenas veículos da SEMANA ABERTA (!v.fechado) + filtro de busca
-  const veiculosAtivos = veiculos.filter((v) => !v.fechado);
+  // REGRA DO PÁTIO:
+  // 1. Veículo NÃO PAGO (!v.pago) -> SEMPRE aparece na tela até ser quitado!
+  // 2. Veículo PAGO (v.pago) -> Aparece enquanto a semana estiver aberta (!v.fechado).
+  const veiculosAtivosNoPatio = veiculos.filter((v) => !v.pago || !v.fechado);
 
-  const veiculosFiltrados = veiculosAtivos.filter(
+  const veiculosFiltrados = veiculosAtivosNoPatio.filter(
     (v) =>
       (v.modelo && v.modelo.toLowerCase().includes(termoBusca.toLowerCase())) ||
       (v.categoria && v.categoria.toLowerCase().includes(termoBusca.toLowerCase())) ||
@@ -172,7 +165,6 @@ export function App() {
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
       <Toaster position="top-right" richColors />
 
-      {/* BARRA LATERAL (NAVIGATION SIDEBAR) */}
       <aside style={{ width: '260px', backgroundColor: '#0f172a', color: '#ffffff', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
@@ -220,7 +212,7 @@ export function App() {
               textAlign: 'left',
             }}
           >
-            🚗 Fila de Lavagem ({veiculosAtivos.length})
+            🚗 Fila de Lavagem ({veiculosAtivosNoPatio.length})
           </button>
 
           {userRole === 'dono' && (
@@ -247,10 +239,7 @@ export function App() {
         </nav>
       </aside>
 
-      {/* CONTEÚDO PRINCIPAL */}
       <main style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
-        
-        {/* ABA: DASHBOARD / FECHAMENTO */}
         {abaAtiva === 'dashboard' && (
           <div>
             <div style={{ marginBottom: '24px' }}>
@@ -269,7 +258,6 @@ export function App() {
           </div>
         )}
 
-        {/* ABA: FILA DE LAVAGEM */}
         {abaAtiva === 'fila' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
@@ -308,7 +296,6 @@ export function App() {
           </div>
         )}
 
-        {/* ABA: GESTÃO DE USUÁRIOS */}
         {abaAtiva === 'usuarios' && userRole === 'dono' && (
           <div>
             <div style={{ marginBottom: '24px' }}>
@@ -321,11 +308,10 @@ export function App() {
         )}
       </main>
 
-      {/* MODAL MODERNO DE CONFIRMAÇÃO DE BAIXA / EXCLUSÃO */}
       <ConfirmModal
         isOpen={isModalAberto}
         title="Dar Baixa no Veículo"
-        description="Tem certeza que deseja remover este veículo da fila do pátio?"
+        description="Tem certeza que deseja remover este veículo do pátio?"
         onConfirm={handleConfirmarExclusao}
         onClose={() => setIsModalAberto(false)}
         loading={loadingExclusao}

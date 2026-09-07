@@ -16,14 +16,14 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
   const [tipoSaida, setTipoSaida] = useState<'dispensa' | 'funcionario' | 'pessoal'>('dispensa');
   const [loadingFechamento, setLoadingFechamento] = useState(false);
   
-  // Controle de Funcionários e Sugestão
   const [equipeDB, setEquipeDB] = useState<any[]>([]);
   const [funcionarioSelecionado, setFuncionarioSelecionado] = useState('');
   const [sugestaoIa, setSugestaoIa] = useState<number | null>(null);
 
-  // Filtra apenas registros da semana aberta (fechado === false ou undefined)
-  const veiculosAtivos = veiculos.filter(v => !v.fechado);
-  const despesasAtivas = despesas.filter(d => !d.fechado);
+  // Veículos divididos por status
+  const veiculosPagosAbertos = veiculos.filter((v) => v.pago && !v.fechado);
+  const veiculosPendentes = veiculos.filter((v) => !v.pago);
+  const despesasAtivas = despesas.filter((d) => !d.fechado);
 
   useEffect(() => {
     buscarEquipe();
@@ -35,17 +35,17 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
     if (data) setEquipeDB(data);
   };
 
-  // VERIFICAÇÃO AUTOMÁTICA: Sábado a partir das 20h ou Domingo
   const verificarFechamentoAutomatico = async () => {
     const agora = new Date();
-    const diaDaSemana = agora.getDay(); // 6 = Sábado, 0 = Domingo
+    const diaDaSemana = agora.getDay();
     const hora = agora.getHours();
 
     const eSabadoApos20h = diaDaSemana === 6 && hora >= 20;
     const eDomingo = diaDaSemana === 0;
 
-    const temPagosParaFechar = veiculosAtivos.some(v => v.pago);
-    if ((eSabadoApos20h || eDomingo) && (temPagosParaFechar || despesasAtivas.length > 0)) {
+    const temItensParaFechar = veiculosPagosAbertos.length > 0 || despesasAtivas.length > 0;
+
+    if ((eSabadoApos20h || eDomingo) && temItensParaFechar) {
       await executarFechamentoCaixa(true);
     }
   };
@@ -54,16 +54,15 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
     try {
       setLoadingFechamento(true);
 
-      // Arquiva apenas veículos PAGOS da semana. Pendentes e Contratos continuam ativos no pátio!
-      const veiculosPagosAtivos = veiculosAtivos.filter((v) => v.pago);
-      const idsVeiculosParaFechar = veiculosPagosAtivos.map((v) => v.id).filter(Boolean);
+      // IDs de veículos pagos que serão arquivados nesta semana
+      const idsVeiculosPagos = veiculosPagosAbertos.map((v) => v.id).filter(Boolean);
       const idsDespesasParaFechar = despesasAtivas.map((d) => d.id).filter(Boolean);
 
-      if (idsVeiculosParaFechar.length > 0) {
+      if (idsVeiculosPagos.length > 0) {
         const { error: errVeiculos } = await supabase
           .from('veiculos')
           .update({ fechado: true })
-          .in('id', idsVeiculosParaFechar);
+          .in('id', idsVeiculosPagos);
 
         if (errVeiculos) throw errVeiculos;
       }
@@ -78,9 +77,9 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
       }
 
       if (isAutomatico) {
-        toast.info('🔒 Fechamento automático semanal! Veículos pagos e despesas arquivados. Contratos e pendências mantidos.');
+        toast.info('🔒 Fechamento automático! Veículos pagos foram arquivados. Contratos e valores a receber continuam ativos no pátio.');
       } else {
-        toast.success('✅ Caixa fechado! Veículos pagos foram arquivados. Contratos e pendências continuam no pátio.');
+        toast.success('✅ Fechamento concluído! Veículos pagos foram arquivados. Contratos e pendências permanecem disponíveis.');
       }
 
       window.location.reload();
@@ -92,8 +91,8 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
   };
 
   const handleConfirmarFechamentoManual = () => {
-    toast('Deseja encerrar e fechar o caixa desta semana?', {
-      description: 'Apenas os veículos já pagos e as despesas serão arquivados. Contratos e veículos pendentes permanecerão no pátio.',
+    toast('Deseja fechar o caixa desta semana?', {
+      description: 'Apenas os veículos quitados e despesas serão arquivados. Todos os contratos e pendências permanecerão no pátio.',
       action: {
         label: 'Fechar Semana',
         onClick: () => executarFechamentoCaixa(false),
@@ -105,7 +104,6 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
     });
   };
 
-  // Garante a lista completa de funcionários (excluindo Bruno/Dono)
   const listaFuncionarios = Array.from(
     new Set([
       ...equipeDB.map(e => e.nome.toUpperCase().trim()),
@@ -113,13 +111,12 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
     ])
   ).filter(nome => nome !== 'BRUNO' && nome !== 'DONO');
 
-  // Calcula comissão pendente dos funcionários na semana ativa
   useEffect(() => {
     if (tipoSaida === 'funcionario' && funcionarioSelecionado) {
       const nomeUpper = funcionarioSelecionado.toUpperCase().trim();
 
-      const totalComissaoAcumulada = veiculosAtivos
-        .filter(v => v.pago && v.lavador)
+      const totalComissaoAcumulada = veiculosPagosAbertos
+        .filter(v => v.lavador)
         .reduce((acc, v) => {
           const todosNomes = v.lavador!.split('/').map(n => n.trim().toUpperCase());
           const funcs = todosNomes.filter(n => n !== 'BRUNO' && n !== 'DONO');
@@ -163,9 +160,9 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
     setSugestaoIa(null);
   };
 
-  // Cálculos do Dashboard para a semana ativa
-  const faturamentoPagos = veiculosAtivos.filter(v => v.pago).reduce((acc, v) => acc + Number(v.valor), 0);
-  const totalContratos = veiculosAtivos.filter(v => v.e_contrato && !v.pago).reduce((acc, v) => acc + Number(v.valor), 0);
+  // CÁLCULOS DO DASHBOARD
+  const faturamentoPagos = veiculosPagosAbertos.reduce((acc, v) => acc + Number(v.valor), 0);
+  const totalContratos = veiculosPendentes.reduce((acc, v) => acc + Number(v.valor), 0);
   const totalDispensa = despesasAtivas.filter(d => d.tipo === 'dispensa').reduce((acc, d) => acc + Number(d.valor), 0);
   const totalPagFuncionarios = despesasAtivas.filter(d => d.tipo === 'funcionario').reduce((acc, d) => acc + Number(d.valor), 0);
   const saldoFinalCaixa = faturamentoPagos - totalDispensa - totalPagFuncionarios;
@@ -186,12 +183,10 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
 
   return (
     <div style={{ marginBottom: '28px' }}>
-      
-      {/* CABEÇALHO COM BOTÃO DE FECHAMENTO MANUAL DA SEMANA */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <span style={{ fontSize: '11px', fontWeight: '800', color: '#10b981', backgroundColor: '#ecfdf5', padding: '4px 10px', borderRadius: '12px', border: '1px solid #a7f3d0' }}>
-            ● Caixa da Semana em Aberto
+            ● Caixa da Semana Aberto
           </span>
         </div>
 
@@ -218,7 +213,6 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
         </button>
       </div>
 
-      {/* CARDS SUPERIORES DO CAIXA */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         <div style={{ backgroundColor: '#ffffff', padding: '20px', borderRadius: '16px', borderLeft: '5px solid #0284c7', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
           <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>Faturamento (Pagos)</span>
@@ -256,14 +250,12 @@ export function FechamentoSemanal({ veiculos, despesas, onAdicionarDespesa, onEx
         </div>
       </div>
 
-      {/* FORMULÁRIO DE LANÇAMENTO DE SAÍDAS */}
       <form onSubmit={handleCadastrarSaida} style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '20px', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.04)' }}>
         <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
           💸 Lançar Saída / Gastos do Lava-Jato
         </h3>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px', alignItems: 'end' }}>
-          
           <div>
             <label style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>Tipo de Saída</label>
             <select 
