@@ -17,7 +17,7 @@ export function App() {
   const [abaAtiva, setAbaAtiva] = useState<'dashboard' | 'fila' | 'fechamento' | 'relatorios' | 'usuarios'>('dashboard');
   const [termoBusca, setTermoBusca] = useState('');
   
-  // Controle de visibilidade do menu lateral (esconder/mostrar)
+  // Controle de visibilidade do menu lateral (esconder/mostrar no celular)
   const [menuAberto, setMenuAberto] = useState(false);
 
   const [idExcluir, setIdExcluir] = useState<string | null>(null);
@@ -63,7 +63,18 @@ export function App() {
 
   const handleNavegar = (aba: 'dashboard' | 'fila' | 'fechamento' | 'relatorios' | 'usuarios') => {
     setAbaAtiva(aba);
-    setMenuAberto(false); // Esconde o menu automaticamente ao selecionar uma aba
+    setMenuAberto(false);
+  };
+
+  // Função para deslogar / trocar de conta
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast.success('Sessão encerrada com sucesso!');
+      window.location.reload();
+    } catch (err: any) {
+      toast.error(`Erro ao encerrar sessão: ${err.message}`);
+    }
   };
 
   const handleAdicionarVeiculo = async (novoVeiculo: Veiculo) => {
@@ -175,7 +186,7 @@ export function App() {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
       <Toaster position="top-right" richColors />
 
-      {/* BARRA SUPERIOR MOBILE DE TOPO (BOTÃO PARA ABRIR/ESCONDER MENU) */}
+      {/* BARRA SUPERIOR COM BOTÃO DE MENU E BOTÃO SAIR/TROCAR CONTA */}
       <header style={{
         backgroundColor: '#0f172a',
         color: '#ffffff',
@@ -193,36 +204,59 @@ export function App() {
           <span style={{ fontWeight: '800', fontSize: '16px' }}>Lava-Rápido</span>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setMenuAberto(!menuAberto)}
-          style={{
-            backgroundColor: '#1e293b',
-            color: '#38bdf8',
-            border: '1px solid #334155',
-            padding: '8px 14px',
-            borderRadius: '10px',
-            fontWeight: '800',
-            fontSize: '13px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}
-        >
-          {menuAberto ? '✕ Esconder Menu' : '☰ Menu Principal'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={() => setMenuAberto(!menuAberto)}
+            style={{
+              backgroundColor: '#1e293b',
+              color: '#38bdf8',
+              border: '1px solid #334155',
+              padding: '8px 12px',
+              borderRadius: '10px',
+              fontWeight: '800',
+              fontSize: '12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            {menuAberto ? '✕ Esconder Menu' : '☰ Menu'}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            style={{
+              backgroundColor: '#7f1d1d',
+              color: '#fca5a5',
+              border: '1px solid #991b1b',
+              padding: '8px 12px',
+              borderRadius: '10px',
+              fontWeight: '800',
+              fontSize: '12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+            title="Sair / Trocar de Conta"
+          >
+            🚪 Sair
+          </button>
+        </div>
       </header>
 
       <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
         
-        {/* NAVEGAÇÃO LATERAL (PODE SER ESCONDIDA OU MOSTRADA) */}
+        {/* NAVEGAÇÃO LATERAL (POSSUI O BOTÃO DE SAIR E O PERFIL DO USUÁRIO) */}
         <aside style={{
           width: '260px',
           backgroundColor: '#0f172a',
           color: '#ffffff',
           padding: '24px 16px',
-          display: menuAberto ? 'flex' : 'none', // Exibe apenas se ativado pelo botão
+          display: menuAberto ? 'flex' : 'none',
           flexDirection: 'column',
           gap: '24px',
           position: 'absolute',
@@ -237,7 +271,11 @@ export function App() {
               <span style={{ fontSize: '24px' }}>💧</span>
               <h1 style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: '#ffffff' }}>Lava-Rápido</h1>
             </div>
-            <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase' }}>Gestão Operacional</span>
+            {userEmail && (
+              <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '700', wordBreak: 'break-all' }}>
+                👤 {userEmail}
+              </span>
+            )}
           </div>
 
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -342,10 +380,31 @@ export function App() {
                 👥 Usuários & Segurança
               </button>
             )}
+
+            <button
+              onClick={handleLogout}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                border: '1px solid #991b1b',
+                fontSize: '13px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                backgroundColor: '#7f1d1d',
+                color: '#fca5a5',
+                textAlign: 'left',
+                marginTop: '16px'
+              }}
+            >
+              🚪 Sair / Trocar de Conta
+            </button>
           </nav>
         </aside>
 
-        {/* ÁREA DE CONTEÚDO PRINCIPAL (OCUPA 100% DA TELA QUANDO O MENU ESTÁ FECHADO) */}
+        {/* ÁREA DE CONTEÚDO PRINCIPAL */}
         <main style={{ flex: 1, padding: '20px', overflowY: 'auto', width: '100%' }}>
           
           {/* DASHBOARD PRINCIPAL */}
