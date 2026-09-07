@@ -6,13 +6,14 @@ import { FormularioVeiculo } from './components/FormularioVeiculo';
 import { ListaVeiculos } from './components/ListaVeiculos';
 import { FechamentoSemanal } from './components/FechamentoSemanal';
 import { GestaoUsuarios } from './components/GestaoUsuarios';
+import { RelatorioGerencial } from './components/RelatorioGerencial';
 import { ConfirmModal } from './components/ConfirmModal';
 
 export function App() {
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
   const [despesas, setDespesas] = useState<Despesa[]>([]);
   const [userRole, setUserRole] = useState<RoleUsuario>('dono');
-  const [abaAtiva, setAbaAtiva] = useState<'fila' | 'dashboard' | 'usuarios'>('dashboard');
+  const [abaAtiva, setAbaAtiva] = useState<'fila' | 'dashboard' | 'relatorios' | 'usuarios'>('dashboard');
   const [termoBusca, setTermoBusca] = useState('');
   
   const [idExcluir, setIdExcluir] = useState<string | null>(null);
@@ -162,6 +163,7 @@ export function App() {
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
       <Toaster position="top-right" richColors />
 
+      {/* NAVEGAÇÃO LATERAL */}
       <aside style={{ width: '260px', backgroundColor: '#0f172a', color: '#ffffff', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
@@ -212,6 +214,26 @@ export function App() {
             🚗 Fila de Lavagem ({veiculosAtivosNoPatio.length})
           </button>
 
+          <button
+            onClick={() => setAbaAtiva('relatorios')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              border: 'none',
+              fontSize: '13px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              backgroundColor: abaAtiva === 'relatorios' ? '#1e293b' : 'transparent',
+              color: abaAtiva === 'relatorios' ? '#38bdf8' : '#94a3b8',
+              textAlign: 'left',
+            }}
+          >
+            📈 Relatórios Gerenciais
+          </button>
+
           {userRole === 'dono' && (
             <button
               onClick={() => setAbaAtiva('usuarios')}
@@ -236,7 +258,10 @@ export function App() {
         </nav>
       </aside>
 
+      {/* ÁREA DE CONTEÚDO */}
       <main style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
+        
+        {/* DASHBOARD */}
         {abaAtiva === 'dashboard' && (
           <div>
             <div style={{ marginBottom: '24px' }}>
@@ -255,6 +280,7 @@ export function App() {
           </div>
         )}
 
+        {/* FILA DE LAVAGEM */}
         {abaAtiva === 'fila' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
@@ -293,6 +319,19 @@ export function App() {
           </div>
         )}
 
+        {/* RELATÓRIOS GERENCIAIS */}
+        {abaAtiva === 'relatorios' && (
+          <div>
+            <div style={{ marginBottom: '24px' }}>
+              <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>HISTÓRICO & DESEMPENHO</span>
+              <h2 style={{ fontSize: '24px', fontWeight: '900', color: '#0f172a', margin: '4px 0 0 0' }}>Relatórios Gerenciais</h2>
+            </div>
+
+            <RelatorioGerencial veiculos={veiculos} despesas={despesas} userEmail={''} />
+          </div>
+        )}
+
+        {/* USUÁRIOS */}
         {abaAtiva === 'usuarios' && userRole === 'dono' && (
           <div>
             <div style={{ marginBottom: '24px' }}>
@@ -316,4 +355,5 @@ export function App() {
     </div>
   );
 }
+
 export default App;
