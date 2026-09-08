@@ -27,7 +27,6 @@ export function App() {
   const [isModalAberto, setIsModalAberto] = useState(false);
   const [loadingExclusao, setLoadingExclusao] = useState(false);
 
-  // ESCUTA O STATUS DA SESSÃO/LOGIN NO SUPABASE
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -88,7 +87,6 @@ export function App() {
     setMenuAberto(false);
   };
 
-  // SAIR / DESLOGAR
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -192,7 +190,6 @@ export function App() {
     }
   };
 
-  // TELA DE CARREGAMENTO INICIAL
   if (carregandoSessao) {
     return (
       <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a', color: '#38bdf8', fontFamily: 'system-ui, sans-serif' }}>
@@ -204,7 +201,6 @@ export function App() {
     );
   }
 
-  // SE NÃO HOUVER USUÁRIO LOGADO, EXIBE A TELA DE LOGIN
   if (!session) {
     return (
       <>
@@ -229,7 +225,6 @@ export function App() {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
       <Toaster position="top-right" richColors />
 
-      {/* BARRA SUPERIOR COM BOTÃO DE MENU E BOTÃO SAIR/TROCAR CONTA */}
       <header style={{
         backgroundColor: '#0f172a',
         color: '#ffffff',
@@ -293,7 +288,6 @@ export function App() {
 
       <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
         
-        {/* NAVEGAÇÃO LATERAL */}
         <aside style={{
           width: '260px',
           backgroundColor: '#0f172a',
@@ -316,31 +310,34 @@ export function App() {
             </div>
             {userEmail && (
               <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '700', wordBreak: 'break-all' }}>
-                👤 {userEmail}
+                👤 {userEmail} ({userRole.toUpperCase()})
               </span>
             )}
           </div>
 
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <button
-              onClick={() => handleNavegar('dashboard')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '12px 16px',
-                borderRadius: '12px',
-                border: 'none',
-                fontSize: '13px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                backgroundColor: abaAtiva === 'dashboard' ? '#1e293b' : 'transparent',
-                color: abaAtiva === 'dashboard' ? '#38bdf8' : '#94a3b8',
-                textAlign: 'left',
-              }}
-            >
-              📊 Dashboard
-            </button>
+            {/* APENAS O DONO VÊ O DASHBOARD FINANCEIRO COMPLETO */}
+            {userRole === 'dono' && (
+              <button
+                onClick={() => handleNavegar('dashboard')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  backgroundColor: abaAtiva === 'dashboard' ? '#1e293b' : 'transparent',
+                  color: abaAtiva === 'dashboard' ? '#38bdf8' : '#94a3b8',
+                  textAlign: 'left',
+                }}
+              >
+                📊 Dashboard
+              </button>
+            )}
 
             <button
               onClick={() => handleNavegar('fila')}
@@ -362,47 +359,52 @@ export function App() {
               🚗 Fila de Lavagem
             </button>
 
-            <button
-              onClick={() => handleNavegar('fechamento')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '12px 16px',
-                borderRadius: '12px',
-                border: 'none',
-                fontSize: '13px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                backgroundColor: abaAtiva === 'fechamento' ? '#1e293b' : 'transparent',
-                color: abaAtiva === 'fechamento' ? '#38bdf8' : '#94a3b8',
-                textAlign: 'left',
-              }}
-            >
-              💳 Fechamento / Caixa
-            </button>
-
-            <button
-              onClick={() => handleNavegar('relatorios')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '12px 16px',
-                borderRadius: '12px',
-                border: 'none',
-                fontSize: '13px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                backgroundColor: abaAtiva === 'relatorios' ? '#1e293b' : 'transparent',
-                color: abaAtiva === 'relatorios' ? '#38bdf8' : '#94a3b8',
-                textAlign: 'left',
-              }}
-            >
-              📈 Relatórios Gerenciais
-            </button>
+            {userRole === 'dono' && (
+              <button
+                onClick={() => handleNavegar('fechamento')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  backgroundColor: abaAtiva === 'fechamento' ? '#1e293b' : 'transparent',
+                  color: abaAtiva === 'fechamento' ? '#38bdf8' : '#94a3b8',
+                  textAlign: 'left',
+                }}
+              >
+                💳 Fechamento / Caixa
+              </button>
+            )}
 
             {userRole === 'dono' && (
+              <button
+                onClick={() => handleNavegar('relatorios')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  backgroundColor: abaAtiva === 'relatorios' ? '#1e293b' : 'transparent',
+                  color: abaAtiva === 'relatorios' ? '#38bdf8' : '#94a3b8',
+                  textAlign: 'left',
+                }}
+              >
+                📈 Relatórios Gerenciais
+              </button>
+            )}
+
+            {/* DONO E GERENTE PODEM GERENCIAR USUÁRIOS E LAVADORES */}
+            {(userRole === 'dono' || userRole === 'gerente') && (
               <button
                 onClick={() => handleNavegar('usuarios')}
                 style={{
@@ -420,7 +422,7 @@ export function App() {
                   textAlign: 'left',
                 }}
               >
-                👥 Usuários & Segurança
+                👥 Usuários & Equipe
               </button>
             )}
 
@@ -447,11 +449,9 @@ export function App() {
           </nav>
         </aside>
 
-        {/* ÁREA DE CONTEÚDO PRINCIPAL */}
         <main style={{ flex: 1, padding: '20px', overflowY: 'auto', width: '100%' }}>
           
-          {/* DASHBOARD PRINCIPAL */}
-          {abaAtiva === 'dashboard' && (
+          {abaAtiva === 'dashboard' && userRole === 'dono' && (
             <div>
               <div style={{ marginBottom: '20px' }}>
                 <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>DASHBOARD / ÁREA ADMINISTRATIVA</span>
@@ -481,7 +481,6 @@ export function App() {
             </div>
           )}
 
-          {/* FILA DE LAVAGEM */}
           {abaAtiva === 'fila' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
@@ -521,8 +520,7 @@ export function App() {
             </div>
           )}
 
-          {/* FECHAMENTO / CAIXA */}
-          {abaAtiva === 'fechamento' && (
+          {abaAtiva === 'fechamento' && userRole === 'dono' && (
             <div>
               <div style={{ marginBottom: '24px' }}>
                 <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>FECHAMENTO & GESTÃO FINANCEIRA</span>
@@ -538,8 +536,7 @@ export function App() {
             </div>
           )}
 
-          {/* RELATÓRIOS GERENCIAIS */}
-          {abaAtiva === 'relatorios' && (
+          {abaAtiva === 'relatorios' && userRole === 'dono' && (
             <div>
               <div style={{ marginBottom: '24px' }}>
                 <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>HISTÓRICO & DESEMPENHO</span>
@@ -550,12 +547,11 @@ export function App() {
             </div>
           )}
 
-          {/* USUÁRIOS */}
-          {abaAtiva === 'usuarios' && userRole === 'dono' && (
+          {abaAtiva === 'usuarios' && (userRole === 'dono' || userRole === 'gerente') && (
             <div>
               <div style={{ marginBottom: '24px' }}>
-                <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>ADMINISTRAÇÃO DE ACESSOS</span>
-                <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a', margin: '4px 0 0 0' }}>Usuários & Segurança</h2>
+                <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>ADMINISTRAÇÃO DE ACESSOS & EQUIPE</span>
+                <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a', margin: '4px 0 0 0' }}>Usuários & Equipe</h2>
               </div>
 
               <GestaoUsuarios />

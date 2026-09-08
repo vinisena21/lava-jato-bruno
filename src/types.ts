@@ -5,7 +5,7 @@ export enum CategoriaVeiculo {
   MOTO = 'Moto',
 }
 
-export type RoleUsuario = 'dono' | 'funcionario';
+export type RoleUsuario = 'dono' | 'gerente' | 'funcionario';
 
 export interface Veiculo {
   id?: string;
