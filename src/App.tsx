@@ -52,10 +52,25 @@ export function App() {
 
   const verificarUsuario = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      setUserEmail(user.email || '');
-      if (user.user_metadata?.role) {
-        setUserRole(user.user_metadata.role as RoleUsuario);
+    if (user && user.email) {
+      setUserEmail(user.email);
+      
+      // Consulta o nível atualizado na tabela de perfis
+      const { data: perfil } = await supabase
+        .from('perfis_usuarios')
+        .select('role')
+        .eq('email', user.email)
+        .single();
+
+      if (perfil && perfil.role) {
+        setUserRole(perfil.role as RoleUsuario);
+      } else {
+        // Se ainda não estiver na tabela, cadastra automaticamente com a role atual
+        const roleInicial = (user.user_metadata?.role as RoleUsuario) || 'dono';
+        setUserRole(roleInicial);
+        await supabase
+          .from('perfis_usuarios')
+          .upsert([{ email: user.email, role: roleInicial }], { onConflict: 'email' });
       }
     }
   };
@@ -100,7 +115,7 @@ export function App() {
     try {
       const { data, error } = await supabase
         .from('veiculos')
-        .insert([{ ...novoVeiculo, fechado: false }])
+        .insert([{ ...novoVeiculo, criado_por: userEmail, fechado: false }])
         .select();
 
       if (error) throw error;
@@ -231,7 +246,7 @@ export function App() {
         padding: '12px 16px',
         display: 'flex',
         alignItems: 'center',
-        justify: 'space-between',
+        justifyContent: 'space-between',
         borderBottom: '1px solid #1e293b',
         position: 'sticky',
         top: 0,
