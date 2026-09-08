@@ -27,6 +27,8 @@ export function ListaVeiculos({ veiculos, onTogglePagamento, onExcluirVeiculo, u
     }
   };
 
+  const podeDarBaixa = userRole === 'dono' || userRole === 'gerente';
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: '20px' }}>
       {veiculos.map((v) => {
@@ -68,7 +70,6 @@ export function ListaVeiculos({ veiculos, onTogglePagamento, onExcluirVeiculo, u
                       </span>
                     )}
                     
-                    {/* Exibe o Lavador (mesmo se for BRUNO ou não informado) */}
                     <span style={{ fontSize: '11px', fontWeight: '700', color: v.lavador ? '#2563eb' : '#94a3b8', backgroundColor: v.lavador ? '#eff6ff' : '#f1f5f9', padding: '2px 8px', borderRadius: '6px' }}>
                       👤 Lavador: {v.lavador || 'Não informado'}
                     </span>
@@ -107,6 +108,7 @@ export function ListaVeiculos({ veiculos, onTogglePagamento, onExcluirVeiculo, u
 
             <div style={{ display: 'flex', gap: '8px', paddingTop: '14px', borderTop: '1px solid #f1f5f9', paddingLeft: '8px' }}>
               <button
+                type="button"
                 onClick={() => v.id && onTogglePagamento(v.id, v.pago)}
                 style={{
                   flex: 1,
@@ -123,8 +125,9 @@ export function ListaVeiculos({ veiculos, onTogglePagamento, onExcluirVeiculo, u
                 {v.pago ? '✓ Pago' : '⏳ Marcar Pago'}
               </button>
 
-              {userRole === 'dono' && (
+              {podeDarBaixa && (
                 <button
+                  type="button"
                   onClick={() => {
                     if (v.id) {
                       onExcluirVeiculo(v.id);
