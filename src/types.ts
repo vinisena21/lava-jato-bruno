@@ -18,6 +18,7 @@ export interface Veiculo {
   e_contrato?: boolean;
   empresa_contrato?: string;
   lavador?: string;
+  criado_por?: string; // <--- NOVO CAMPO
   fechado?: boolean;
   created_at?: string;
 }

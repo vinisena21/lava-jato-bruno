@@ -74,6 +74,13 @@ export function ListaVeiculos({ veiculos, onTogglePagamento, onExcluirVeiculo, u
                       👤 Lavador: {v.lavador || 'Não informado'}
                     </span>
 
+                    {/* MOSTRA O USUÁRIO QUE FEZ O LANÇAMENTO */}
+                    {v.criado_por && (
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: '#0d9488', backgroundColor: '#f0fdf4', padding: '2px 8px', borderRadius: '6px' }}>
+                        📝 Lançado por: {v.criado_por.split('@')[0]}
+                      </span>
+                    )}
+
                     {v.e_contrato && (
                       <span style={{ fontSize: '11px', fontWeight: '700', color: '#b45309', backgroundColor: '#fffbeb', padding: '2px 8px', borderRadius: '6px' }}>
                         📑 Contrato: {v.empresa_contrato || 'Sim'}
