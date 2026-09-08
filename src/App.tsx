@@ -55,7 +55,6 @@ export function App() {
     if (user && user.email) {
       setUserEmail(user.email);
       
-      // Consulta o nível atualizado na tabela de perfis
       const { data: perfil } = await supabase
         .from('perfis_usuarios')
         .select('role')
@@ -65,7 +64,6 @@ export function App() {
       if (perfil && perfil.role) {
         setUserRole(perfil.role as RoleUsuario);
       } else {
-        // Se ainda não estiver na tabela, cadastra automaticamente com a role atual
         const roleInicial = (user.user_metadata?.role as RoleUsuario) || 'dono';
         setUserRole(roleInicial);
         await supabase
@@ -331,7 +329,6 @@ export function App() {
           </div>
 
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {/* APENAS O DONO VÊ O DASHBOARD FINANCEIRO COMPLETO */}
             {userRole === 'dono' && (
               <button
                 onClick={() => handleNavegar('dashboard')}
@@ -418,8 +415,8 @@ export function App() {
               </button>
             )}
 
-            {/* DONO E GERENTE PODEM GERENCIAR USUÁRIOS E LAVADORES */}
-            {(userRole === 'dono' || userRole === 'gerente') && (
+            {/* BOTÃO USUÁRIOS AGORA É EXCLUSIVO DO DONO */}
+            {userRole === 'dono' && (
               <button
                 onClick={() => handleNavegar('usuarios')}
                 style={{
@@ -562,7 +559,8 @@ export function App() {
             </div>
           )}
 
-          {abaAtiva === 'usuarios' && (userRole === 'dono' || userRole === 'gerente') && (
+          {/* TELA DE USUÁRIOS AGORA É EXCLUSIVA DO DONO */}
+          {abaAtiva === 'usuarios' && userRole === 'dono' && (
             <div>
               <div style={{ marginBottom: '24px' }}>
                 <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>ADMINISTRAÇÃO DE ACESSOS & EQUIPE</span>
