@@ -410,7 +410,8 @@ export function FormularioVeiculo({ onAdicionarVeiculo, userRole }: FormularioPr
             📑 Veículo de Empresa / Convênio?
           </label>
           
-          {userRole === 'dono' && (
+          {/* BOTÃO LIBERADO PARA DONO E GERENTE AQUI */}
+          {(userRole === 'dono' || userRole === 'gerente') && (
             <button
               type="button"
               onClick={() => setIsEditingAtalhos(!isEditingAtalhos)}
@@ -425,7 +426,7 @@ export function FormularioVeiculo({ onAdicionarVeiculo, userRole }: FormularioPr
           <input type="text" placeholder="Nome da Empresa (Ex: Ambulância, Master)" value={empresaContrato} onChange={(e) => setEmpresaContrato(e.target.value)} style={{ ...inputStyle, width: '280px', backgroundColor: '#fffbeb', borderColor: '#fcd34d' }} />
         )}
 
-        {/* MODO DE EDIÇÃO DO ADMINISTRADOR */}
+        {/* MODO DE EDIÇÃO (Visível quando ativado) */}
         {isEditingAtalhos && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', backgroundColor: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
             
