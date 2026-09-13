@@ -187,7 +187,50 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
             </div>
           </div>
 
-          {/* TABELA DE REGISTROS MENSIAIS */}
+          {/* NOVA TABELA DE VEÍCULOS (ENTRADAS) NO FILTRO MENSAL */}
+          <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', marginBottom: '16px' }}>
+              🚗 Veículos Lavados / Entradas ({veiculosFiltrados.length})
+            </h3>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8fafc', textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>
+                  <th style={{ padding: '10px' }}>Data</th>
+                  <th style={{ padding: '10px' }}>Placa</th>
+                  <th style={{ padding: '10px' }}>Modelo</th>
+                  <th style={{ padding: '10px' }}>Status</th>
+                  <th style={{ padding: '10px', textAlign: 'right' }}>Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {veiculosFiltrados.length === 0 ? (
+                  <tr><td colSpan={5} style={{ padding: '16px', textAlign: 'center', color: '#94a3b8' }}>Nenhum veículo registrado para este filtro.</td></tr>
+                ) : (
+                  veiculosFiltrados.map((v, i) => (
+                    <tr key={v.id || i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '10px', color: '#64748b' }}>
+                        {v.created_at ? new Date(v.created_at).toLocaleDateString('pt-BR') : '-'}
+                      </td>
+                      <td style={{ padding: '10px', fontWeight: '700', textTransform: 'uppercase' }}>{v.placa}</td>
+                      <td style={{ padding: '10px', textTransform: 'capitalize' }}>{v.modelo}</td>
+                      <td style={{ padding: '10px' }}>
+                        {v.pago ? (
+                          <span style={{ color: '#15803d', fontWeight: '700' }}>PAGO</span>
+                        ) : (
+                          <span style={{ color: '#dc2626', fontWeight: '700' }}>PENDENTE</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '10px', textAlign: 'right', fontWeight: '800', color: '#0284c7' }}>
+                        + R$ {Number(v.valor).toFixed(2).replace('.', ',')}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* TABELA DE REGISTROS MENSIAIS (GASTOS) */}
           <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
             <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', marginBottom: '16px' }}>
               📋 Todos os Lançamentos de Gastos / Saídas ({despesasFiltradas.length})
@@ -397,6 +440,40 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
                 </div>
               </div>
 
+              {/* NOVA TABELA DE VEÍCULOS NO PDF */}
+              <div style={{ marginBottom: '32px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a', marginBottom: '12px', textTransform: 'uppercase' }}>
+                  🚗 Veículos Lavados na Semana (Entradas):
+                </h4>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f8fafc', textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>
+                      <th style={{ padding: '10px' }}>Placa</th>
+                      <th style={{ padding: '10px' }}>Modelo</th>
+                      <th style={{ padding: '10px' }}>Categoria</th>
+                      <th style={{ padding: '10px', textAlign: 'right' }}>Valor Recebido</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(fechamentoSelecionado.veiculos_json || []).length === 0 ? (
+                      <tr><td colSpan={4} style={{ padding: '16px', textAlign: 'center', color: '#94a3b8' }}>Nenhum veículo registrado neste fechamento.</td></tr>
+                    ) : (
+                      (fechamentoSelecionado.veiculos_json || []).map((v: any, idx: number) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '10px', fontWeight: '700', textTransform: 'uppercase' }}>{v.placa}</td>
+                          <td style={{ padding: '10px', textTransform: 'capitalize' }}>{v.modelo}</td>
+                          <td style={{ padding: '10px', textTransform: 'capitalize' }}>{v.categoria}</td>
+                          <td style={{ padding: '10px', textAlign: 'right', fontWeight: '800', color: '#0284c7' }}>
+                            + R$ {Number(v.valor).toFixed(2).replace('.', ',')}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* TABELA DE GASTOS NO PDF */}
               <div style={{ marginBottom: '32px' }}>
                 <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a', marginBottom: '12px', textTransform: 'uppercase' }}>
                   💸 Gastos / Saídas Gravadas:
@@ -407,20 +484,24 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
                       <th style={{ padding: '10px' }}>Tipo</th>
                       <th style={{ padding: '10px' }}>Descrição</th>
                       <th style={{ padding: '10px' }}>Favorecido</th>
-                      <th style={{ padding: '10px', textAlign: 'right' }}>Valor</th>
+                      <th style={{ padding: '10px', textAlign: 'right' }}>Valor Retirado</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {(fechamentoSelecionado.despesas_json || []).map((d: any, idx: number) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '10px', fontWeight: '700', textTransform: 'capitalize' }}>{d.tipo}</td>
-                        <td style={{ padding: '10px' }}>{d.descricao}</td>
-                        <td style={{ padding: '10px' }}>{d.funcionario || '-'}</td>
-                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: '800', color: '#dc2626' }}>
-                          - R$ {Number(d.valor).toFixed(2).replace('.', ',')}
-                        </td>
-                      </tr>
-                    ))}
+                    {(fechamentoSelecionado.despesas_json || []).length === 0 ? (
+                      <tr><td colSpan={4} style={{ padding: '16px', textAlign: 'center', color: '#94a3b8' }}>Nenhuma despesa registrada neste fechamento.</td></tr>
+                    ) : (
+                      (fechamentoSelecionado.despesas_json || []).map((d: any, idx: number) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '10px', fontWeight: '700', textTransform: 'capitalize' }}>{d.tipo}</td>
+                          <td style={{ padding: '10px' }}>{d.descricao}</td>
+                          <td style={{ padding: '10px' }}>{d.funcionario || '-'}</td>
+                          <td style={{ padding: '10px', textAlign: 'right', fontWeight: '800', color: '#dc2626' }}>
+                            - R$ {Number(d.valor).toFixed(2).replace('.', ',')}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
