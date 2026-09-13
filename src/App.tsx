@@ -223,7 +223,10 @@ export function App() {
     );
   }
 
-  const veiculosAtivosNoPatio = veiculos.filter((v) => !v.pago || !v.fechado);
+  // CORREÇÃO CRÍTICA DO FILTRO DO PÁTIO:
+  // Agora ele mostra apenas os veículos que ainda NÃO foram fechados na tela de Caixa/Fechamento Semanal.
+  // Se o carro for pago, ele continua no pátio até você dar Baixa.
+  const veiculosAtivosNoPatio = veiculos.filter((v) => !v.fechado);
 
   const veiculosFiltrados = veiculosAtivosNoPatio.filter(
     (v) =>
