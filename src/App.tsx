@@ -163,9 +163,9 @@ export function App() {
       if (error) throw error;
 
       setVeiculos(veiculos.filter(v => v.id !== idExcluir));
-      toast.success('Veículo removido com sucesso!');
+      toast.success('Excluído com sucesso!');
     } catch (err: any) {
-      toast.error(`Erro ao remover veículo: ${err.message}`);
+      toast.error(`Erro ao excluir: ${err.message}`);
     } finally {
       setLoadingExclusao(false);
       setIsModalAberto(false);
@@ -197,7 +197,7 @@ export function App() {
       if (error) throw error;
 
       setDespesas(despesas.filter(d => d.id !== id));
-      toast.success('Saída removida do caixa.');
+      toast.success('Saída removida com sucesso!');
     } catch (err: any) {
       toast.error(`Erro ao remover saída: ${err.message}`);
     }
@@ -223,9 +223,6 @@ export function App() {
     );
   }
 
-  // CORREÇÃO CRÍTICA DO FILTRO DO PÁTIO:
-  // Agora ele mostra apenas os veículos que ainda NÃO foram fechados na tela de Caixa/Fechamento Semanal.
-  // Se o carro for pago, ele continua no pátio até você dar Baixa.
   const veiculosAtivosNoPatio = veiculos.filter((v) => !v.fechado);
 
   const veiculosFiltrados = veiculosAtivosNoPatio.filter(
@@ -418,7 +415,6 @@ export function App() {
               </button>
             )}
 
-            {/* BOTÃO USUÁRIOS AGORA É EXCLUSIVO DO DONO */}
             {userRole === 'dono' && (
               <button
                 onClick={() => handleNavegar('usuarios')}
@@ -558,11 +554,16 @@ export function App() {
                 <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a', margin: '4px 0 0 0' }}>Relatórios Gerenciais</h2>
               </div>
 
-              <RelatorioGerencial veiculos={veiculos} despesas={despesas} userEmail={userEmail} />
+              <RelatorioGerencial 
+                veiculos={veiculos} 
+                despesas={despesas} 
+                userEmail={userEmail} 
+                onExcluirVeiculo={handleSolicitarExclusao}
+                onExcluirDespesa={handleExcluirDespesa}
+              />
             </div>
           )}
 
-          {/* TELA DE USUÁRIOS AGORA É EXCLUSIVA DO DONO */}
           {abaAtiva === 'usuarios' && userRole === 'dono' && (
             <div>
               <div style={{ marginBottom: '24px' }}>
@@ -578,8 +579,8 @@ export function App() {
 
       <ConfirmModal
         isOpen={isModalAberto}
-        title="Dar Baixa no Veículo"
-        description="Tem certeza que deseja remover este veículo do pátio?"
+        title="Excluir Registro"
+        description="Tem certeza que deseja excluir este registro permanentemente do banco de dados?"
         onConfirm={handleConfirmarExclusao}
         onClose={() => setIsModalAberto(false)}
         loading={loadingExclusao}
