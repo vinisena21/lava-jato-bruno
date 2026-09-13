@@ -76,6 +76,15 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
   const totalRetiradasPessoais = despesasFiltradas.filter(d => d.tipo === 'pessoal').reduce((acc, d) => acc + Number(d.valor), 0);
   const saldoLiquido = faturamentoTotal - totalInsumos - totalPagoFuncionarios - totalRetiradasPessoais;
 
+  // Cálculo automático das comissões (R$ 10 por carro)
+  const comissoes = veiculosFiltrados.reduce((acc, v) => {
+    // Tenta pegar o nome do lavador (alguns sistemas salvam como lavador, outros como funcionario)
+    const nomeLavador = (v.lavador || v.funcionario || 'Não informado').toUpperCase().trim();
+    if (!acc[nomeLavador]) acc[nomeLavador] = 0;
+    acc[nomeLavador] += 1;
+    return acc;
+  }, {} as Record<string, number>);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
@@ -187,7 +196,28 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
             </div>
           </div>
 
-          {/* NOVA TABELA DE VEÍCULOS (ENTRADAS) NO FILTRO MENSAL */}
+          {/* NOVO QUADRO DE RESUMO DE COMISSÕES */}
+          <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', marginBottom: '16px' }}>
+              💰 Comissões a Pagar (R$ 10,00 por carro neste mês)
+            </h3>
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+              {Object.entries(comissoes).map(([nome, qtd]) => (
+                <div key={nome} style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', minWidth: '180px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: '800', color: '#64748b' }}>{nome}</span>
+                  <p style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: '900', color: '#15803d' }}>
+                    R$ {(qtd * 10).toFixed(2).replace('.', ',')}
+                  </p>
+                  <span style={{ fontSize: '12px', fontWeight: '600', color: '#94a3b8' }}>({qtd} carros)</span>
+                </div>
+              ))}
+              {Object.keys(comissoes).length === 0 && (
+                <p style={{ color: '#94a3b8', fontSize: '13px' }}>Nenhum veículo registrado para calcular comissão.</p>
+              )}
+            </div>
+          </div>
+
+          {/* TABELA DE VEÍCULOS (ENTRADAS) NO FILTRO MENSAL COM LAVADOR */}
           <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
             <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', marginBottom: '16px' }}>
               🚗 Veículos Lavados / Entradas ({veiculosFiltrados.length})
@@ -198,13 +228,14 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
                   <th style={{ padding: '10px' }}>Data</th>
                   <th style={{ padding: '10px' }}>Placa</th>
                   <th style={{ padding: '10px' }}>Modelo</th>
+                  <th style={{ padding: '10px' }}>Lavador</th>
                   <th style={{ padding: '10px' }}>Status</th>
                   <th style={{ padding: '10px', textAlign: 'right' }}>Valor</th>
                 </tr>
               </thead>
               <tbody>
                 {veiculosFiltrados.length === 0 ? (
-                  <tr><td colSpan={5} style={{ padding: '16px', textAlign: 'center', color: '#94a3b8' }}>Nenhum veículo registrado para este filtro.</td></tr>
+                  <tr><td colSpan={6} style={{ padding: '16px', textAlign: 'center', color: '#94a3b8' }}>Nenhum veículo registrado para este filtro.</td></tr>
                 ) : (
                   veiculosFiltrados.map((v, i) => (
                     <tr key={v.id || i} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -213,6 +244,7 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
                       </td>
                       <td style={{ padding: '10px', fontWeight: '700', textTransform: 'uppercase' }}>{v.placa}</td>
                       <td style={{ padding: '10px', textTransform: 'capitalize' }}>{v.modelo}</td>
+                      <td style={{ padding: '10px', fontWeight: '700', color: '#0f172a' }}>{v.lavador || v.funcionario || '-'}</td>
                       <td style={{ padding: '10px' }}>
                         {v.pago ? (
                           <span style={{ color: '#15803d', fontWeight: '700' }}>PAGO</span>
@@ -450,7 +482,7 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
                     <tr style={{ backgroundColor: '#f8fafc', textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>
                       <th style={{ padding: '10px' }}>Placa</th>
                       <th style={{ padding: '10px' }}>Modelo</th>
-                      <th style={{ padding: '10px' }}>Categoria</th>
+                      <th style={{ padding: '10px' }}>Lavador</th>
                       <th style={{ padding: '10px', textAlign: 'right' }}>Valor Recebido</th>
                     </tr>
                   </thead>
@@ -462,7 +494,7 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
                         <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                           <td style={{ padding: '10px', fontWeight: '700', textTransform: 'uppercase' }}>{v.placa}</td>
                           <td style={{ padding: '10px', textTransform: 'capitalize' }}>{v.modelo}</td>
-                          <td style={{ padding: '10px', textTransform: 'capitalize' }}>{v.categoria}</td>
+                          <td style={{ padding: '10px', fontWeight: '700' }}>{v.lavador || v.funcionario || '-'}</td>
                           <td style={{ padding: '10px', textAlign: 'right', fontWeight: '800', color: '#0284c7' }}>
                             + R$ {Number(v.valor).toFixed(2).replace('.', ',')}
                           </td>
