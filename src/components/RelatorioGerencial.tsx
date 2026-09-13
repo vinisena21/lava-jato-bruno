@@ -76,14 +76,32 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
   const totalRetiradasPessoais = despesasFiltradas.filter(d => d.tipo === 'pessoal').reduce((acc, d) => acc + Number(d.valor), 0);
   const saldoLiquido = faturamentoTotal - totalInsumos - totalPagoFuncionarios - totalRetiradasPessoais;
 
-  // Cálculo automático das comissões (R$ 10 por carro)
-  const comissoes = veiculosFiltrados.reduce((acc, v) => {
-    // Tenta pegar o nome do lavador (alguns sistemas salvam como lavador, outros como funcionario)
-    const nomeLavador = (v.lavador || v.funcionario || 'Não informado').toUpperCase().trim();
-    if (!acc[nomeLavador]) acc[nomeLavador] = 0;
-    acc[nomeLavador] += 1;
-    return acc;
-  }, {} as Record<string, number>);
+  // Cálculo inteligente de comissões: se houver dupla (ex: "NEGO / RAFA"), R$ 10 vai para cada um
+  const comissoesPorFuncionario: Record<string, { totalCarros: number; valorTotal: number; detalhes: string[] }> = {};
+
+  veiculosFiltrados.forEach((v) => {
+    const lavadorBruto = (v.lavador || v.funcionario || 'NÃO INFORMADO').toUpperCase().trim();
+    
+    // Separa caso tenham lavado juntos (ex: "NEGO / RAFA", "RAFA E NEGO", "NEGO, RAFA")
+    const nomes = lavadorBruto.split(/\/|&|E|,/).map(n => n.trim()).filter(Boolean);
+
+    nomes.forEach((nome) => {
+      // Padroniza nomes comuns se necessário ou usa direto
+      let funcionarioKey = nome;
+      if (funcionarioKey.includes('NEGO')) funcionarioKey = 'NEGO';
+      if (funcionarioKey.includes('RAFA')) funcionarioKey = 'RAFA';
+
+      if (!comissoesPorFuncionario[funcionarioKey]) {
+        comissoesPorFuncionario[funcionarioKey] = { totalCarros: 0, valorTotal: 0, detalhes: [] };
+      }
+
+      comissoesPorFuncionario[funcionarioKey].totalCarros += 1;
+      comissoesPorFuncionario[funcionarioKey].valorTotal += 10;
+      
+      const dataFormatada = v.created_at ? new Date(v.created_at).toLocaleDateString('pt-BR') : 'Data não informada';
+      comissoesPorFuncionario[funcionarioKey].detalhes.push(`${dataFormatada} — ${v.modelo || 'Veículo'} (${v.placa || 'Sem placa'})`);
+    });
+  });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -94,12 +112,7 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
           type="button"
           onClick={() => setAbaInterna('meses')}
           style={{
-            padding: '10px 18px',
-            borderRadius: '10px',
-            border: 'none',
-            fontWeight: '800',
-            fontSize: '13px',
-            cursor: 'pointer',
+            padding: '10px 18px', borderRadius: '10px', border: 'none', fontWeight: '800', fontSize: '13px', cursor: 'pointer',
             backgroundColor: abaInterna === 'meses' ? '#0f172a' : '#f1f5f9',
             color: abaInterna === 'meses' ? '#ffffff' : '#64748b',
           }}
@@ -111,12 +124,7 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
           type="button"
           onClick={() => setAbaInterna('funcionarios')}
           style={{
-            padding: '10px 18px',
-            borderRadius: '10px',
-            border: 'none',
-            fontWeight: '800',
-            fontSize: '13px',
-            cursor: 'pointer',
+            padding: '10px 18px', borderRadius: '10px', border: 'none', fontWeight: '800', fontSize: '13px', cursor: 'pointer',
             backgroundColor: abaInterna === 'funcionarios' ? '#9333ea' : '#f1f5f9',
             color: abaInterna === 'funcionarios' ? '#ffffff' : '#64748b',
           }}
@@ -128,12 +136,7 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
           type="button"
           onClick={() => setAbaInterna('fechamentos')}
           style={{
-            padding: '10px 18px',
-            borderRadius: '10px',
-            border: 'none',
-            fontWeight: '800',
-            fontSize: '13px',
-            cursor: 'pointer',
+            padding: '10px 18px', borderRadius: '10px', border: 'none', fontWeight: '800', fontSize: '13px', cursor: 'pointer',
             backgroundColor: abaInterna === 'fechamentos' ? '#0284c7' : '#f1f5f9',
             color: abaInterna === 'fechamentos' ? '#ffffff' : '#64748b',
           }}
@@ -196,28 +199,35 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
             </div>
           </div>
 
-          {/* NOVO QUADRO DE RESUMO DE COMISSÕES */}
+          {/* QUADRO DE COMISSÕES DETALHADAS POR FUNCIONÁRIO */}
           <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
             <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', marginBottom: '16px' }}>
-              💰 Comissões a Pagar (R$ 10,00 por carro neste mês)
+              💰 Comissões Detalhadas (R$ 10,00 por carro lavado por funcionário)
             </h3>
-            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-              {Object.entries(comissoes).map(([nome, qtd]) => (
-                <div key={nome} style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', minWidth: '180px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: '800', color: '#64748b' }}>{nome}</span>
-                  <p style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: '900', color: '#15803d' }}>
-                    R$ {(qtd * 10).toFixed(2).replace('.', ',')}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+              {Object.entries(comissoesPorFuncionario).map(([nome, dados]) => (
+                <div key={nome} style={{ backgroundColor: '#f8fafc', padding: '18px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: '900', color: '#0f172a' }}>👤 {nome}</span>
+                    <span style={{ fontSize: '16px', fontWeight: '900', color: '#15803d' }}>R$ {dados.valorTotal.toFixed(2).replace('.', ',')}</span>
+                  </div>
+                  <p style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', marginBottom: '10px' }}>
+                    Total de participações: {dados.totalCarros} carros
                   </p>
-                  <span style={{ fontSize: '12px', fontWeight: '600', color: '#94a3b8' }}>({qtd} carros)</span>
+                  <div style={{ maxHeight: '120px', overflowY: 'auto', borderTop: '1px solid #e2e8f0', paddingTop: '8px', fontSize: '11px', color: '#475569' }}>
+                    {dados.detalhes.map((det, idx) => (
+                      <div key={idx} style={{ padding: '2px 0' }}>• {det}</div>
+                    ))}
+                  </div>
                 </div>
               ))}
-              {Object.keys(comissoes).length === 0 && (
-                <p style={{ color: '#94a3b8', fontSize: '13px' }}>Nenhum veículo registrado para calcular comissão.</p>
+              {Object.keys(comissoesPorFuncionario).length === 0 && (
+                <p style={{ color: '#94a3b8', fontSize: '13px' }}>Nenhum veículo registrado para calcular comissão neste período.</p>
               )}
             </div>
           </div>
 
-          {/* TABELA DE VEÍCULOS (ENTRADAS) NO FILTRO MENSAL COM LAVADOR */}
+          {/* TABELA DE VEÍCULOS (ENTRADAS) COM DETALHE DE QUEM LAVOU */}
           <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
             <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', marginBottom: '16px' }}>
               🚗 Veículos Lavados / Entradas ({veiculosFiltrados.length})
@@ -228,7 +238,7 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
                   <th style={{ padding: '10px' }}>Data</th>
                   <th style={{ padding: '10px' }}>Placa</th>
                   <th style={{ padding: '10px' }}>Modelo</th>
-                  <th style={{ padding: '10px' }}>Lavador</th>
+                  <th style={{ padding: '10px' }}>Lavador(es)</th>
                   <th style={{ padding: '10px' }}>Status</th>
                   <th style={{ padding: '10px', textAlign: 'right' }}>Valor</th>
                 </tr>
@@ -244,7 +254,7 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
                       </td>
                       <td style={{ padding: '10px', fontWeight: '700', textTransform: 'uppercase' }}>{v.placa}</td>
                       <td style={{ padding: '10px', textTransform: 'capitalize' }}>{v.modelo}</td>
-                      <td style={{ padding: '10px', fontWeight: '700', color: '#0f172a' }}>{v.lavador || v.funcionario || '-'}</td>
+                      <td style={{ padding: '10px', fontWeight: '800', color: '#2563eb' }}>{v.lavador || v.funcionario || 'Não informado'}</td>
                       <td style={{ padding: '10px' }}>
                         {v.pago ? (
                           <span style={{ color: '#15803d', fontWeight: '700' }}>PAGO</span>
@@ -262,7 +272,7 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
             </table>
           </div>
 
-          {/* TABELA DE REGISTROS MENSIAIS (GASTOS) */}
+          {/* TABELA DE GASTOS */}
           <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
             <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', marginBottom: '16px' }}>
               📋 Todos os Lançamentos de Gastos / Saídas ({despesasFiltradas.length})
@@ -305,7 +315,6 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
       {abaInterna === 'funcionarios' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
-          {/* FILTROS DE FUNCIONÁRIOS E MÊS */}
           <div style={{ backgroundColor: '#ffffff', padding: '16px 20px', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
             <div>
               <label style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
@@ -340,7 +349,6 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
             </div>
           </div>
 
-          {/* CARD DE TOTAL PAGO NO FILTRO */}
           <div style={{ backgroundColor: '#faf5ff', padding: '20px', borderRadius: '16px', borderLeft: '5px solid #9333ea', border: '1px solid #e9d5ff' }}>
             <span style={{ fontSize: '11px', fontWeight: '800', color: '#7e22ce', textTransform: 'uppercase' }}>
               Total Pago aos Funcionários ({funcionarioFiltro === 'todos' ? 'Geral' : funcionarioFiltro})
@@ -350,7 +358,6 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
             </h2>
           </div>
 
-          {/* TABELA DE HISTÓRICO DE PAGAMENTOS */}
           <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
             <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', marginBottom: '16px' }}>
               👤 Histórico Detalhado de Pagamentos / Diárias
@@ -419,17 +426,8 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
                 type="button"
                 onClick={() => window.print()}
                 style={{
-                  backgroundColor: '#0284c7',
-                  color: '#ffffff',
-                  padding: '12px 20px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  fontWeight: '800',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
+                  backgroundColor: '#0284c7', color: '#ffffff', padding: '12px 20px', borderRadius: '12px', border: 'none',
+                  fontWeight: '800', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
                   boxShadow: '0 4px 12px rgba(2, 132, 199, 0.2)'
                 }}
               >
@@ -472,7 +470,7 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
                 </div>
               </div>
 
-              {/* NOVA TABELA DE VEÍCULOS NO PDF */}
+              {/* TABELA DE VEÍCULOS NO PDF */}
               <div style={{ marginBottom: '32px' }}>
                 <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a', marginBottom: '12px', textTransform: 'uppercase' }}>
                   🚗 Veículos Lavados na Semana (Entradas):
@@ -482,7 +480,7 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
                     <tr style={{ backgroundColor: '#f8fafc', textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>
                       <th style={{ padding: '10px' }}>Placa</th>
                       <th style={{ padding: '10px' }}>Modelo</th>
-                      <th style={{ padding: '10px' }}>Lavador</th>
+                      <th style={{ padding: '10px' }}>Lavador(es)</th>
                       <th style={{ padding: '10px', textAlign: 'right' }}>Valor Recebido</th>
                     </tr>
                   </thead>
