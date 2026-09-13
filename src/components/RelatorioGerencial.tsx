@@ -76,17 +76,21 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
   const totalRetiradasPessoais = despesasFiltradas.filter(d => d.tipo === 'pessoal').reduce((acc, d) => acc + Number(d.valor), 0);
   const saldoLiquido = faturamentoTotal - totalInsumos - totalPagoFuncionarios - totalRetiradasPessoais;
 
-  // Cálculo inteligente de comissões: se houver dupla (ex: "NEGO / RAFA"), R$ 10 vai para cada um
+  // Cálculo inteligente e cirúrgico de comissões
   const comissoesPorFuncionario: Record<string, { totalCarros: number; valorTotal: number; detalhes: string[] }> = {};
 
   veiculosFiltrados.forEach((v) => {
-    const lavadorBruto = (v.lavador || v.funcionario || 'NÃO INFORMADO').toUpperCase().trim();
+    const lavadorBruto = (v.lavador || v.funcionario || '').toUpperCase().trim();
     
-    // Separa caso tenham lavado juntos (ex: "NEGO / RAFA", "RAFA E NEGO", "NEGO, RAFA")
-    const nomes = lavadorBruto.split(/\/|&|E|,/).map(n => n.trim()).filter(Boolean);
+    // Trava Cirúrgica: Se for vazio, Não Informado ou dono, pula o cálculo de comissão (pois é 100% do dono)
+    if (!lavadorBruto || lavadorBruto === 'NÃO INFORMADO' || lavadorBruto === 'DONO') {
+      return; 
+    }
+
+    // Corta APENAS se for a palavra "E" isolada por espaços (\s+E\s+), barras, virgulas ou &
+    const nomes = lavadorBruto.split(/\s*\/\s*|\s*&\s*|\s+E\s+|\s*,\s*/).map(n => n.trim()).filter(Boolean);
 
     nomes.forEach((nome) => {
-      // Padroniza nomes comuns se necessário ou usa direto
       let funcionarioKey = nome;
       if (funcionarioKey.includes('NEGO')) funcionarioKey = 'NEGO';
       if (funcionarioKey.includes('RAFA')) funcionarioKey = 'RAFA';
@@ -247,26 +251,35 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
                 {veiculosFiltrados.length === 0 ? (
                   <tr><td colSpan={6} style={{ padding: '16px', textAlign: 'center', color: '#94a3b8' }}>Nenhum veículo registrado para este filtro.</td></tr>
                 ) : (
-                  veiculosFiltrados.map((v, i) => (
-                    <tr key={v.id || i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '10px', color: '#64748b' }}>
-                        {v.created_at ? new Date(v.created_at).toLocaleDateString('pt-BR') : '-'}
-                      </td>
-                      <td style={{ padding: '10px', fontWeight: '700', textTransform: 'uppercase' }}>{v.placa}</td>
-                      <td style={{ padding: '10px', textTransform: 'capitalize' }}>{v.modelo}</td>
-                      <td style={{ padding: '10px', fontWeight: '800', color: '#2563eb' }}>{v.lavador || v.funcionario || 'Não informado'}</td>
-                      <td style={{ padding: '10px' }}>
-                        {v.pago ? (
-                          <span style={{ color: '#15803d', fontWeight: '700' }}>PAGO</span>
-                        ) : (
-                          <span style={{ color: '#dc2626', fontWeight: '700' }}>PENDENTE</span>
-                        )}
-                      </td>
-                      <td style={{ padding: '10px', textAlign: 'right', fontWeight: '800', color: '#0284c7' }}>
-                        + R$ {Number(v.valor).toFixed(2).replace('.', ',')}
-                      </td>
-                    </tr>
-                  ))
+                  veiculosFiltrados.map((v, i) => {
+                    // Tratamento visual para exibir "DONO" caso esteja vazio
+                    const lavadorFormatado = (!v.lavador && !v.funcionario) || v.lavador?.toUpperCase() === 'NÃO INFORMADO' 
+                      ? 'DONO' 
+                      : (v.lavador || v.funcionario);
+
+                    return (
+                      <tr key={v.id || i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '10px', color: '#64748b' }}>
+                          {v.created_at ? new Date(v.created_at).toLocaleDateString('pt-BR') : '-'}
+                        </td>
+                        <td style={{ padding: '10px', fontWeight: '700', textTransform: 'uppercase' }}>{v.placa}</td>
+                        <td style={{ padding: '10px', textTransform: 'capitalize' }}>{v.modelo}</td>
+                        <td style={{ padding: '10px', fontWeight: '800', color: lavadorFormatado === 'DONO' ? '#0f172a' : '#2563eb' }}>
+                          {lavadorFormatado}
+                        </td>
+                        <td style={{ padding: '10px' }}>
+                          {v.pago ? (
+                            <span style={{ color: '#15803d', fontWeight: '700' }}>PAGO</span>
+                          ) : (
+                            <span style={{ color: '#dc2626', fontWeight: '700' }}>PENDENTE</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: '800', color: '#0284c7' }}>
+                          + R$ {Number(v.valor).toFixed(2).replace('.', ',')}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -488,16 +501,22 @@ export function RelatorioGerencial({ veiculos, despesas }: RelatorioProps) {
                     {(fechamentoSelecionado.veiculos_json || []).length === 0 ? (
                       <tr><td colSpan={4} style={{ padding: '16px', textAlign: 'center', color: '#94a3b8' }}>Nenhum veículo registrado neste fechamento.</td></tr>
                     ) : (
-                      (fechamentoSelecionado.veiculos_json || []).map((v: any, idx: number) => (
-                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '10px', fontWeight: '700', textTransform: 'uppercase' }}>{v.placa}</td>
-                          <td style={{ padding: '10px', textTransform: 'capitalize' }}>{v.modelo}</td>
-                          <td style={{ padding: '10px', fontWeight: '700' }}>{v.lavador || v.funcionario || '-'}</td>
-                          <td style={{ padding: '10px', textAlign: 'right', fontWeight: '800', color: '#0284c7' }}>
-                            + R$ {Number(v.valor).toFixed(2).replace('.', ',')}
-                          </td>
-                        </tr>
-                      ))
+                      (fechamentoSelecionado.veiculos_json || []).map((v: any, idx: number) => {
+                        const lavadorPDF = (!v.lavador && !v.funcionario) || v.lavador?.toUpperCase() === 'NÃO INFORMADO' 
+                          ? 'DONO' 
+                          : (v.lavador || v.funcionario);
+                          
+                        return (
+                          <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '10px', fontWeight: '700', textTransform: 'uppercase' }}>{v.placa}</td>
+                            <td style={{ padding: '10px', textTransform: 'capitalize' }}>{v.modelo}</td>
+                            <td style={{ padding: '10px', fontWeight: '700' }}>{lavadorPDF}</td>
+                            <td style={{ padding: '10px', textAlign: 'right', fontWeight: '800', color: '#0284c7' }}>
+                              + R$ {Number(v.valor).toFixed(2).replace('.', ',')}
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
